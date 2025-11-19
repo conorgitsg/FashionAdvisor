@@ -1,0 +1,116 @@
+<div class="upload-page">
+  <h1 class="title">Add a new wardrobe item</h1>
+
+  <p class="subtitle">
+    Capture or upload a photo of a single clothing item. We’ll prepare it for
+    your digital closet.
+  </p>
+
+  <!-- Mode toggle: Camera vs File upload -->
+  <div class="mode-toggle">
+    <button
+      type="button"
+      class="mode-btn"
+      [class.mode-btn--active]="mode === 'camera'"
+      (click)="switchMode('camera')"
+    >
+      Camera
+    </button>
+    <button
+      type="button"
+      class="mode-btn"
+      [class.mode-btn--active]="mode === 'file'"
+      (click)="switchMode('file')"
+    >
+      Upload from files
+    </button>
+  </div>
+
+  <!-- CAMERA MODE -->
+  <section *ngIf="mode === 'camera'" class="panel">
+    <h2 class="panel-title">Use your camera</h2>
+    <p class="panel-text">
+      Place the item on a plain background, fill the frame, and avoid harsh
+      shadows.
+    </p>
+
+    <app-camera-capture (photoCaptured)="onPhotoCaptured($event)">
+    </app-camera-capture>
+  </section>
+
+  <!-- FILE MODE -->
+  <section *ngIf="mode === 'file'" class="panel">
+    <h2 class="panel-title">Upload a photo</h2>
+    <p class="panel-text">
+      Choose an existing photo from your gallery. Ideally, the item should be
+      centered and clearly visible.
+    </p>
+
+    <label class="file-input-label">
+      <input
+        type="file"
+        accept="image/*"
+        (change)="onFileSelected($event)"
+        class="file-input"
+      />
+      <span>Choose image</span>
+    </label>
+  </section>
+
+  <!-- PIPELINE STATUS & PREVIEWS -->
+  <section class="pipeline" *ngIf="rawPreviewUrl || processedPreviewUrl">
+    <h2 class="panel-title">Processing preview</h2>
+
+    <div class="preview-row">
+      <div class="preview-card">
+        <h3>Original photo</h3>
+        <div class="preview-frame" *ngIf="rawPreviewUrl; else noOriginal">
+          <img [src]="rawPreviewUrl" alt="Original preview" />
+        </div>
+        <ng-template #noOriginal>
+          <div class="preview-placeholder">No image yet</div>
+        </ng-template>
+      </div>
+
+      <div class="preview-card">
+        <h3>After background removal</h3>
+        <div
+          class="preview-frame"
+          *ngIf="processedPreviewUrl; else noProcessed"
+        >
+          <img [src]="processedPreviewUrl" alt="Processed preview" />
+        </div>
+        <ng-template #noProcessed>
+          <div class="preview-placeholder">
+            Waiting for background removal…
+          </div>
+        </ng-template>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATUS MESSAGE -->
+  <p class="status" *ngIf="statusMessage">
+    {{ statusMessage }}
+  </p>
+
+  <!-- AI TAGGING RESULT -->
+  <section class="ai-result" *ngIf="aiResult">
+    <h2 class="panel-title">Detected details (stub)</h2>
+    <ul class="tag-list">
+      <li><strong>Category:</strong> {{ aiResult.category }}</li>
+      <li><strong>Colors:</strong> {{ aiResult.colors.join(', ') }}</li>
+      <li><strong>Seasons:</strong> {{ aiResult.seasons.join(', ') }}</li>
+      <li><strong>Occasions:</strong> {{ aiResult.occasions.join(', ') }}</li>
+      <li><strong>Pattern:</strong> {{ aiResult.pattern }}</li>
+      <li *ngIf="aiResult.notes">
+        <strong>Notes:</strong> {{ aiResult.notes }}
+      </li>
+    </ul>
+
+    <p class="note">
+      These values are placeholders for now. Once the AI integration is ready,
+      this section will show real tags that feed into your Item Catalogue.
+    </p>
+  </section>
+</div>
