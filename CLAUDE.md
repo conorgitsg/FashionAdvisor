@@ -183,7 +183,6 @@ const result = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
 { path: 'onboarding', loadComponent: () => import('./components/onboarding/onboarding.component') }
 { path: 'login', loadComponent: () => import('./components/login/login.component') }
 { path: 'inventory', loadComponent: () => import('./components/catalog/catalog.component') }
-{ path: 'mixer', loadComponent: () => import('./components/placeholder/placeholder.component') }
 { path: 'outfits', loadComponent: () => import('./components/placeholder/placeholder.component') }
 { path: 'stylist', loadComponent: () => import('./components/placeholder/placeholder.component') }
 { path: 'planner', loadComponent: () => import('./components/weekly-planner/weekly-planner.component') }
@@ -210,8 +209,8 @@ The app has S3 connectivity implemented with a test component at `/s3-test`. Pos
 **Available routes:**
 - `/` - Full landing page with hero, features, footer
 - `/onboarding` - 8-step onboarding wizard with profile creation
+- `/login` - Email login page
 - `/inventory` - Wardrobe catalog with filtering and sorting
-- `/mixer` - Outfit Mixer (placeholder)
 - `/outfits` - Outfit Catalogue (placeholder)
 - `/stylist` - AI Stylist (placeholder)
 - `/planner` - Weekly planner with event and outfit scheduling
@@ -300,6 +299,26 @@ The camera test page (`/camera-test`) provides full camera-to-S3 integration for
 - Uses `S3ImageService` for all S3 operations
 - Images displayed using S3 URLs from backend
 - Filenames generated as `camera-{timestamp}.jpg`
+
+### Login Feature
+
+The login page (`/login`) provides email-based authentication.
+
+**Features:**
+- Email and password input fields
+- Loading state during authentication
+- Error message display
+- Forgot password functionality
+- Link to create account (onboarding)
+
+**Component Methods:**
+- `onSubmit()` - Validates and processes login
+- `forgotPassword()` - Handles password reset request
+
+**Authentication Flow:**
+- Validates email format
+- Stores login state in localStorage
+- Redirects to `/inventory` on success
 
 ### Daily Outfit Feature
 

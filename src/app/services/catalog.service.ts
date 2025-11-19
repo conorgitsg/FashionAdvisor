@@ -1,6 +1,30 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { Observable, of, map, catchError } from 'rxjs';
+
+export interface WardrobeTags {
+  item_name?: string;
+  broad_category?: string;
+  sub_category?: string;
+  silhouette?: string;
+  materials?: string;
+  colors?: string[];
+  patterns?: string;
+  construction_details?: string;
+  style_vibe?: string;
+  best_pairings?: string[];
+  seasonality?: string[];
+  tags?: string[];
+}
+
+export interface WardrobeItem {
+  id: string;
+  s3Key: string;
+  imageUrl: string;
+  tags: WardrobeTags;
+  notes?: string;
+  createdAt: string;
+}
 
 export interface ClothingItem {
   id: string;
@@ -47,14 +71,104 @@ export class CatalogService {
 
   constructor(private http: HttpClient) {}
 
+  getWardrobeItems(): Observable<WardrobeItem[]> {
+    return this.http.get<{ items: WardrobeItem[] }>(`${this.apiUrl}/wardrobe/items`).pipe(
+      map(response => response.items),
+      catchError(err => {
+        console.error('Failed to fetch wardrobe items', err);
+        return of([]);
+      })
+    );
+  }
+
   getClothingItems(filters?: CatalogFilters, sort?: SortOption): Observable<ClothingItem[]> {
-    // TODO: Replace with actual API call
-    return of(this.getMockClothingItems(filters, sort));
+    return this.getWardrobeItems().pipe(
+      map(items => this.transformAndFilterItems(items, filters, sort))
+    );
   }
 
   getOutfits(filters?: CatalogFilters, sort?: SortOption): Observable<Outfit[]> {
-    // TODO: Replace with actual API call
+    // TODO: Replace with actual API call when outfits are implemented
     return of(this.getMockOutfits(filters, sort));
+  }
+
+  private transformAndFilterItems(wardrobeItems: WardrobeItem[], filters?: CatalogFilters, sort?: SortOption): ClothingItem[] {
+    let items: ClothingItem[] = wardrobeItems.map(item => this.transformWardrobeItem(item));
+
+    // Apply filters
+    if (filters) {
+      if (filters.itemType.length > 0) {
+        items = items.filter(item => filters.itemType.includes(item.type));
+      }
+      if (filters.colors.length > 0) {
+        items = items.filter(item =>
+          item.colors.some(color => filters.colors.includes(color.toLowerCase()))
+        );
+      }
+      if (filters.styles.length > 0) {
+        items = items.filter(item =>
+          item.style?.some(style => filters.styles.includes(style.toLowerCase()))
+        );
+      }
+      if (filters.seasons.length > 0) {
+        items = items.filter(item =>
+          item.season?.some(season => filters.seasons.includes(season.toLowerCase()))
+        );
+      }
+    }
+
+    // Apply sorting
+    if (sort) {
+      switch (sort) {
+        case 'recent':
+          items.sort((a, b) => b.dateAdded.getTime() - a.dateAdded.getTime());
+          break;
+        case 'most-worn':
+          items.sort((a, b) => b.usageFrequency - a.usageFrequency);
+          break;
+        case 'least-worn':
+          items.sort((a, b) => a.usageFrequency - b.usageFrequency);
+          break;
+        case 'alphabetical':
+          items.sort((a, b) => a.name.localeCompare(b.name));
+          break;
+      }
+    }
+
+    return items;
+  }
+
+  private transformWardrobeItem(item: WardrobeItem): ClothingItem {
+    const tags = item.tags || {};
+
+    // Map broad_category to type
+    const typeMap: Record<string, ClothingItem['type']> = {
+      'tops': 'top',
+      'bottoms': 'bottom',
+      'one-piece': 'dress',
+      'outerwear': 'outerwear',
+      'shoes': 'shoes',
+      'accessories': 'accessory',
+      'underwear/sleepwear': 'accessory',
+      'sportswear/athleisure': 'top'
+    };
+
+    const broadCategory = (tags.broad_category || '').toLowerCase();
+    const type = typeMap[broadCategory] || 'accessory';
+
+    return {
+      id: item.id,
+      name: tags.item_name || 'Unnamed Item',
+      type,
+      category: tags.sub_category || tags.broad_category || 'Other',
+      tags: tags.tags || [],
+      colors: (tags.colors || []).map(c => c.toLowerCase()),
+      imageUrl: item.imageUrl,
+      usageFrequency: 0, // No usage tracking yet
+      dateAdded: new Date(item.createdAt),
+      season: (tags.seasonality || []).map(s => s.toLowerCase()),
+      style: tags.style_vibe ? [tags.style_vibe.toLowerCase()] : []
+    };
   }
 
   private getMockClothingItems(filters?: CatalogFilters, sort?: SortOption): ClothingItem[] {
