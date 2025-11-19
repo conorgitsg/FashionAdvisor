@@ -40,7 +40,7 @@
                 }
                 @if (savedProfile?.styles?.length) {
                   <span class="saved-chip">
-                    Styles: {{ savedProfile?.styles.slice(0, 2).join(', ') }}{{ savedProfile?.styles.length > 2 ? ' +' + (savedProfile?.styles.length - 2) : '' }}
+                    Styles: {{ savedProfile!.styles!.slice(0, 2).join(', ') }}{{ savedProfile!.styles!.length > 2 ? ' +' + (savedProfile!.styles!.length - 2) : '' }}
                   </span>
                 }
                 @if (savedProfile?.location) {
