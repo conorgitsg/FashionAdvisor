@@ -2,34 +2,7 @@ import { Component, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-interface UserProfile {
-  // Basic Profile
-  name: string;
-  ageRange: string;
-  genderPresentation: string;
-
-  // Body & Fit
-  height: number;
-  heightUnit: string;
-  weight: number | null;
-  shareWeight: boolean;
-  bodyShape: string;
-  fitPreference: number;
-
-  // Style Preferences
-  styles: string[];
-  colors: string[];
-  patternsToAvoid: string[];
-
-  // Lifestyle & Climate
-  location: string;
-  activities: string[];
-  weatherSensitivity: string;
-
-  // Goals
-  goals: string[];
-}
+import { PersonaService, PersonaProfile } from '../../services/persona.service';
 
 @Component({
   selector: 'app-onboarding',
@@ -41,8 +14,10 @@ interface UserProfile {
 export class OnboardingComponent {
   currentStep = signal(0);
   totalSteps = 8;
+  isSaving = signal(false);
+  saveError = signal<string | null>(null);
 
-  profile: UserProfile = {
+  profile: PersonaProfile = {
     name: '',
     ageRange: '',
     genderPresentation: '',
@@ -129,7 +104,7 @@ export class OnboardingComponent {
     { id: 'reduce-fatigue', label: 'Reduce decision fatigue', icon: 'brain' }
   ];
 
-  constructor(public router: Router) {}
+  constructor(public router: Router, private personaService: PersonaService) {}
 
   getColorHex(colorId: string): string {
     return this.colorOptions.find(c => c.id === colorId)?.hex || '#000000';
@@ -152,9 +127,20 @@ export class OnboardingComponent {
   }
 
   completeOnboarding() {
-    // Save profile to localStorage for now
-    localStorage.setItem('userProfile', JSON.stringify(this.profile));
-    this.router.navigate(['/inventory']);
+    this.isSaving.set(true);
+    this.saveError.set(null);
+
+    this.personaService.savePersona(this.profile).subscribe({
+      next: () => {
+        localStorage.setItem('userProfile', JSON.stringify(this.profile));
+        this.router.navigate(['/inventory']);
+      },
+      error: (err) => {
+        console.error('Failed to save persona', err);
+        this.saveError.set('Could not save your profile. Please try again.');
+        this.isSaving.set(false);
+      }
+    });
   }
 
   toggleArrayItem(array: string[], item: string) {

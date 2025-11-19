@@ -158,6 +158,18 @@ async function ensureOutfitsTable() {
   `);
 }
 
+async function ensurePersonasTable() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS personas (
+      id UUID PRIMARY KEY,
+      user_id TEXT,
+      profile JSONB NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+}
+
 // Middleware
 app.use(cors({
   origin: 'http://localhost:4200',
@@ -167,6 +179,9 @@ app.use(cors({
 app.use(express.json());
 ensureOutfitsTable().catch(err => {
   console.error('Failed to ensure outfits table exists', err);
+});
+ensurePersonasTable().catch(err => {
+  console.error('Failed to ensure personas table exists', err);
 });
 
 // Health check
@@ -509,6 +524,58 @@ app.post('/api/stylist/recommend', async (req, res) => {
     });
   } catch (error) {
     console.error('Stylist recommend error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Save or update persona profile
+app.post('/api/personas', async (req, res) => {
+  try {
+    const { userId, profile } = req.body || {};
+    if (!profile || typeof profile !== 'object') {
+      return res.status(400).json({ message: 'profile is required' });
+    }
+
+    const personaId = uuidv4();
+    await db.query(
+      `INSERT INTO personas (id, user_id, profile)
+       VALUES ($1, $2, $3)`,
+      [personaId, userId || null, profile]
+    );
+
+    res.json({ id: personaId, userId: userId || null, profile });
+  } catch (error) {
+    console.error('Persona save error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Update persona profile
+app.put('/api/personas/:id', async (req, res) => {
+  try {
+    const personaId = req.params.id;
+    const { profile, userId } = req.body || {};
+    if (!profile || typeof profile !== 'object') {
+      return res.status(400).json({ message: 'profile is required' });
+    }
+
+    const result = await db.query(
+      `UPDATE personas
+       SET profile = $1,
+           user_id = $2,
+           updated_at = NOW()
+       WHERE id = $3
+       RETURNING id, user_id, profile, created_at, updated_at`,
+      [profile, userId || null, personaId]
+    );
+
+    if (!result.rowCount) {
+      return res.status(404).json({ message: 'Persona not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Persona update error:', error);
     res.status(500).json({ message: error.message });
   }
 });
