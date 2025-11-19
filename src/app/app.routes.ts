@@ -11,8 +11,7 @@ export const routes: Routes = [
   },
   {
     path: 'inventory',
-    loadComponent: () => import('./components/placeholder/placeholder.component').then(m => m.PlaceholderComponent),
-    data: { title: 'Item Catalogue' }
+    loadComponent: () => import('./components/catalog/catalog.component').then(m => m.CatalogComponent)
   },
   {
     path: 'mixer',

@@ -126,12 +126,14 @@ src/app/
     camera-test/          # Camera functionality test page
     daily-outfit/         # Daily smart outfit recommendation page
     outfit-preferences/   # Tag-based outfit preference input
+    catalog/              # Wardrobe catalog with filtering
   camera/                 # Camera capture component
   upload/                 # Upload page with camera/file modes
   services/
     s3-image.service.ts   # S3 API client service
     ai-tagging.service.ts # AI tagging service
     daily-outfit.service.ts # Daily outfit recommendation API service
+    catalog.service.ts    # Catalog data and filtering service
   app.ts                  # Root component
   app.routes.ts           # Route configuration
   app.config.ts           # App providers config
@@ -176,7 +178,7 @@ const result = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
 // src/app/app.routes.ts - Main application routes
 { path: '', loadComponent: () => import('./components/landing-page/landing-page.component') }
 { path: 'onboarding', loadComponent: () => import('./components/placeholder/placeholder.component') }
-{ path: 'inventory', loadComponent: () => import('./components/placeholder/placeholder.component') }
+{ path: 'inventory', loadComponent: () => import('./components/catalog/catalog.component') }
 { path: 'mixer', loadComponent: () => import('./components/placeholder/placeholder.component') }
 { path: 'outfits', loadComponent: () => import('./components/placeholder/placeholder.component') }
 { path: 'stylist', loadComponent: () => import('./components/placeholder/placeholder.component') }
@@ -204,7 +206,7 @@ The app has S3 connectivity implemented with a test component at `/s3-test`. Pos
 **Available routes:**
 - `/` - Full landing page with hero, features, footer
 - `/onboarding` - 8-step onboarding wizard with profile creation
-- `/inventory` - Item Catalogue (placeholder)
+- `/inventory` - Wardrobe catalog with filtering and sorting
 - `/mixer` - Outfit Mixer (placeholder)
 - `/outfits` - Outfit Catalogue (placeholder)
 - `/stylist` - AI Stylist (placeholder)
@@ -316,5 +318,67 @@ interface OutfitRecommendation {
   items: OutfitItem[];
   reason: string;
   isAlternative?: boolean;
+}
+```
+
+### Catalog Feature
+
+The catalog feature allows users to browse and filter their wardrobe items and outfit combinations.
+
+**Catalog Overview** (`/inventory`):
+- View mode tabs: Clothing / Outfits / All
+- Quick filter chips: All, Tops, Bottoms, Dresses, Outerwear
+- Sort options: Most Recent, Most Worn, Least Worn, Alphabetical
+- Grid display of clothing items and outfits
+- Active filter tags with removal
+- "Filters" button opens bottom sheet
+
+**Filter Bottom Sheet**:
+- Item Type: Tops, Bottoms, Dresses, Outerwear, Shoes, Accessories
+- Colors: White, Black, Blue, Beige, Pastel, Multi-color
+- Style/Occasion: Casual, Workwear, Party, Minimalist, Feminine, Travel, Athleisure
+- Season/Weather: Summer, Monsoon, Winter, All-season
+- Usage: Most Worn, Under-used, Never Worn
+- Outfit Filters: 2-piece, 3-piece, 4-piece
+- Reset and Show Results actions
+
+**CatalogService** (`src/app/services/catalog.service.ts`):
+- `getClothingItems(filters, sort)` - Get filtered/sorted clothing
+- `getOutfits(filters, sort)` - Get filtered/sorted outfits
+
+**Data Structures:**
+```typescript
+interface ClothingItem {
+  id: string;
+  name: string;
+  type: 'top' | 'bottom' | 'dress' | 'outerwear' | 'shoes' | 'accessory';
+  category: string;
+  tags: string[];
+  colors: string[];
+  imageUrl: string;
+  usageFrequency: number;
+  dateAdded: Date;
+  season?: string[];
+  style?: string[];
+}
+
+interface Outfit {
+  id: string;
+  name: string;
+  items: ClothingItem[];
+  tags: string[];
+  category?: string;
+  imageUrl: string;
+  lastModified: Date;
+  pieceCount: number;
+}
+
+interface CatalogFilters {
+  itemType: string[];
+  colors: string[];
+  styles: string[];
+  seasons: string[];
+  usage: string[];
+  outfitTypes: string[];
 }
 ```

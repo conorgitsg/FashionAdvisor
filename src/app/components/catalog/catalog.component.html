@@ -1,0 +1,287 @@
+<div class="catalog-page">
+  <!-- Header -->
+  <header class="header">
+    <button class="back-btn" (click)="goBack()">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+    </button>
+    <h1>Catalog</h1>
+    <div class="header-spacer"></div>
+  </header>
+
+  <!-- View Mode Tabs -->
+  <div class="view-tabs">
+    <button
+      class="tab-btn"
+      [class.active]="viewMode() === 'clothing'"
+      (click)="setViewMode('clothing')">
+      Clothing
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="viewMode() === 'outfits'"
+      (click)="setViewMode('outfits')">
+      Outfits
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="viewMode() === 'all'"
+      (click)="setViewMode('all')">
+      All
+    </button>
+  </div>
+
+  <!-- Quick Filters & Sort -->
+  <div class="filters-bar">
+    <div class="quick-filters">
+      @for (filter of quickFilters; track filter.id) {
+        <button
+          class="quick-filter-chip"
+          [class.active]="activeQuickFilter() === filter.id"
+          (click)="setQuickFilter(filter.id)">
+          {{ filter.label }}
+        </button>
+      }
+      <button class="filters-btn" (click)="openFilters()">
+        Filters
+        @if (getActiveFilterCount() > 0) {
+          <span class="filter-count">{{ getActiveFilterCount() }}</span>
+        }
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
+    </div>
+
+    <select
+      class="sort-select"
+      [ngModel]="sortOption()"
+      (ngModelChange)="setSortOption($event)">
+      @for (option of sortOptions; track option.value) {
+        <option [value]="option.value">{{ option.label }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- Active Filter Tags -->
+  @if (getActiveFilterTags().length > 0) {
+    <div class="active-filters">
+      @for (tag of getActiveFilterTags(); track tag) {
+        <span class="filter-tag">
+          {{ tag }}
+          <button class="tag-remove" (click)="removeFilterTag(tag)">×</button>
+        </span>
+      }
+      <button class="clear-all-btn" (click)="resetFilters()">Clear All</button>
+    </div>
+  }
+
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading catalog...</p>
+    </div>
+  }
+
+  <!-- Content -->
+  @if (!loading()) {
+    <div class="catalog-content">
+      <!-- Clothing Grid -->
+      @if (viewMode() === 'clothing' || viewMode() === 'all') {
+        @if (clothingItems().length > 0) {
+          <section class="catalog-section">
+            @if (viewMode() === 'all') {
+              <h2 class="section-title">Clothing</h2>
+            }
+            <div class="items-grid">
+              @for (item of clothingItems(); track item.id) {
+                <div class="item-card">
+                  <div class="item-image">
+                    <span class="item-icon">{{ getItemTypeIcon(item.type) }}</span>
+                  </div>
+                  <div class="item-info">
+                    <span class="item-name">{{ item.name }}</span>
+                    <span class="item-category">{{ item.category }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          </section>
+        } @else if (viewMode() === 'clothing') {
+          <div class="empty-state">
+            <p>No clothing items match your filters</p>
+            <button class="btn btn-secondary" (click)="resetFilters()">Clear Filters</button>
+          </div>
+        }
+      }
+
+      <!-- Outfits Grid -->
+      @if (viewMode() === 'outfits' || viewMode() === 'all') {
+        @if (outfits().length > 0) {
+          <section class="catalog-section">
+            @if (viewMode() === 'all') {
+              <h2 class="section-title">Outfits</h2>
+            }
+            <div class="items-grid">
+              @for (outfit of outfits(); track outfit.id) {
+                <div class="item-card outfit-card">
+                  <div class="item-image outfit-image">
+                    <span class="outfit-pieces">{{ outfit.pieceCount }} pieces</span>
+                  </div>
+                  <div class="item-info">
+                    <span class="item-name">{{ outfit.name }}</span>
+                    <div class="outfit-tags">
+                      @for (tag of outfit.tags.slice(0, 2); track tag) {
+                        <span class="mini-tag">{{ tag }}</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </section>
+        } @else if (viewMode() === 'outfits') {
+          <div class="empty-state">
+            <p>No outfits match your filters</p>
+            <button class="btn btn-secondary" (click)="resetFilters()">Clear Filters</button>
+          </div>
+        }
+      }
+
+      <!-- Empty state for All view -->
+      @if (viewMode() === 'all' && clothingItems().length === 0 && outfits().length === 0) {
+        <div class="empty-state">
+          <p>No items match your filters</p>
+          <button class="btn btn-secondary" (click)="resetFilters()">Clear Filters</button>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Filter Bottom Sheet -->
+@if (showFilterSheet()) {
+  <div class="filter-overlay" (click)="closeFilters()"></div>
+  <div class="filter-sheet">
+    <div class="sheet-header">
+      <h2>Filter Catalog</h2>
+      <button class="close-btn" (click)="closeFilters()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <p class="sheet-subtitle">Narrow down your wardrobe by style, color, season, and more.</p>
+
+    <div class="filter-content">
+      <!-- Item Type -->
+      @if (viewMode() !== 'outfits') {
+        <div class="filter-group">
+          <h3>Item Type</h3>
+          <div class="filter-chips">
+            @for (type of ['top', 'bottom', 'dress', 'outerwear', 'shoes', 'accessory']; track type) {
+              <button
+                class="filter-chip"
+                [class.selected]="sheetFilters.itemType.includes(type)"
+                (click)="toggleFilter('itemType', type)">
+                {{ type | titlecase }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Colors -->
+      <div class="filter-group">
+        <h3>Colors</h3>
+        <div class="filter-chips color-chips">
+          @for (color of ['white', 'black', 'blue', 'beige', 'pastel', 'multi-color']; track color) {
+            <button
+              class="filter-chip color-chip"
+              [class.selected]="sheetFilters.colors.includes(color)"
+              [attr.data-color]="color"
+              (click)="toggleFilter('colors', color)">
+              <span class="color-dot" [style.background-color]="getColorValue(color)"></span>
+              {{ color | titlecase }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Style/Occasion -->
+      <div class="filter-group">
+        <h3>Style / Occasion</h3>
+        <div class="filter-chips">
+          @for (style of ['casual', 'workwear', 'party', 'minimalist', 'feminine', 'travel', 'athleisure']; track style) {
+            <button
+              class="filter-chip"
+              [class.selected]="sheetFilters.styles.includes(style)"
+              (click)="toggleFilter('styles', style)">
+              {{ style | titlecase }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Season -->
+      <div class="filter-group">
+        <h3>Season / Weather</h3>
+        <div class="filter-chips">
+          @for (season of ['summer', 'monsoon', 'winter', 'all-season']; track season) {
+            <button
+              class="filter-chip"
+              [class.selected]="sheetFilters.seasons.includes(season)"
+              (click)="toggleFilter('seasons', season)">
+              {{ season | titlecase }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Usage -->
+      @if (viewMode() !== 'outfits') {
+        <div class="filter-group">
+          <h3>Usage</h3>
+          <div class="filter-chips">
+            @for (usage of ['most-worn', 'under-used', 'never-worn']; track usage) {
+              <button
+                class="filter-chip"
+                [class.selected]="sheetFilters.usage.includes(usage)"
+                (click)="toggleFilter('usage', usage)">
+                @switch (usage) {
+                  @case ('most-worn') { Most Worn }
+                  @case ('under-used') { Under-used }
+                  @case ('never-worn') { Never Worn }
+                }
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Outfit Types -->
+      @if (viewMode() === 'outfits' || viewMode() === 'all') {
+        <div class="filter-group">
+          <h3>Outfit Filters</h3>
+          <div class="filter-chips">
+            @for (type of ['2-piece', '3-piece', '4-piece']; track type) {
+              <button
+                class="filter-chip"
+                [class.selected]="sheetFilters.outfitTypes.includes(type)"
+                (click)="toggleFilter('outfitTypes', type)">
+                {{ type }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="sheet-actions">
+      <button class="reset-btn" (click)="resetSheetFilters()">Reset</button>
+      <button class="btn btn-primary apply-btn" (click)="applySheetFilters()">Show Results</button>
+    </div>
+  </div>
+}
