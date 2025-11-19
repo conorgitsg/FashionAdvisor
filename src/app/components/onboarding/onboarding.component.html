@@ -26,6 +26,18 @@
         <p>Your AI-powered wardrobe assistant that learns your style and helps you create perfect outfits every day.</p>
         <button class="btn-cta" (click)="nextStep()">Get Started</button>
         <button class="btn-secondary" (click)="router.navigate(['/login'])">Log In</button>
+        @if (savedProfile) {
+          <div class="saved-profile-banner">
+            <div>
+              <strong>Use your saved style profile?</strong>
+              <p class="saved-profile-text">Skip onboarding and keep your previous persona settings.</p>
+            </div>
+            <div class="saved-actions">
+              <button class="btn-ghost" (click)="nextStep()">Re-enter details</button>
+              <button class="btn-cta" (click)="useSavedProfile()">Use saved profile</button>
+            </div>
+          </div>
+        }
       </div>
     </div>
   }
