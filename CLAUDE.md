@@ -177,4 +177,11 @@ For the PostgreSQL database connection to work:
 
 ### Current State
 
-The app has S3 connectivity implemented with a test component at `/s3-test`. PostgreSQL database service is configured but requires AWS RDS network setup. The root template displays a styled hero landing page with the FashionAdvisor design system applied.
+The app has S3 connectivity implemented with a test component at `/s3-test`. PostgreSQL database is connected and working. The root template displays a styled hero landing page with the FashionAdvisor design system applied.
+
+**Available routes:**
+- `/` - Hero landing page
+- `/s3-test` - S3 upload testing
+- `/camera` - Camera capture component (standalone)
+- `/camera-test` - Camera functionality test page with gallery
+- `/upload` - Upload page with camera/file modes and AI tagging pipeline
