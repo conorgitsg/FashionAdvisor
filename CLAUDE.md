@@ -224,7 +224,7 @@ The app has S3 connectivity implemented with a test component at `/s3-test`. Pos
 The landing page (`/`) includes:
 1. **Hero Section** - Split layout with CTA "Start Your Style Profile" linking to `/onboarding`
 2. **How It Works** - 3-column grid (Capture, Auto-Calibration, Style DNA)
-3. **Feature Highlights** - Outfit Mixer preview, Weather-Aware Planning preview, and Daily Smart Outfit preview
+3. **Feature Highlights** - Digital Wardrobe (catalog), Outfit Mixer, Weather-Aware Planning, and Daily Smart Outfit previews
 4. **Footer** - Navigation links and social icons (Instagram, TikTok)
 
 ### Placeholder Component
