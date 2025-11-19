@@ -92,6 +92,10 @@ export class CatalogService {
     return of(this.getMockOutfits(filters, sort));
   }
 
+  deleteItem(itemId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/wardrobe/items/${itemId}`);
+  }
+
   private transformAndFilterItems(wardrobeItems: WardrobeItem[], filters?: CatalogFilters, sort?: SortOption): ClothingItem[] {
     let items: ClothingItem[] = wardrobeItems.map(item => this.transformWardrobeItem(item));
 

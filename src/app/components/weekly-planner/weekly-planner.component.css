@@ -12,6 +12,21 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--spacing-xl);
+  gap: var(--spacing-md);
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  padding: var(--spacing-sm);
+  cursor: pointer;
+  color: var(--color-text-primary);
+  border-radius: var(--radius-sm);
+  transition: background-color 0.2s;
+}
+
+.back-btn:hover {
+  background-color: var(--color-border);
 }
 
 .planner-header h1 {
@@ -19,6 +34,7 @@
   font-weight: 700;
   color: var(--color-text-primary);
   margin: 0;
+  flex: 1;
 }
 
 .week-navigation {

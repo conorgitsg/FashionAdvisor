@@ -1,6 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { WeeklyPlannerService, PlannerWeek, PlannerDay, PlannerEvent, DayOutfit } from '../../services/weekly-planner.service';
 
@@ -27,7 +27,14 @@ export class WeeklyPlannerComponent implements OnInit {
 
   dressCodeOptions = ['Casual', 'Business Casual', 'Business Formal', 'Smart Casual', 'Athleisure', 'Dressy'];
 
-  constructor(private plannerService: WeeklyPlannerService) {}
+  constructor(
+    private plannerService: WeeklyPlannerService,
+    private router: Router
+  ) {}
+
+  goBack(): void {
+    this.router.navigate(['/']);
+  }
 
   ngOnInit(): void {
     this.loadCurrentWeek();

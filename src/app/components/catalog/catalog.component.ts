@@ -22,7 +22,7 @@ export class CatalogComponent implements OnInit {
   protected clothingItems = signal<ClothingItem[]>([]);
   protected outfits = signal<Outfit[]>([]);
   protected loading = signal(true);
-  protected viewMode = signal<ViewMode>('all');
+  protected viewMode = signal<ViewMode>('clothing');
   protected sortOption = signal<SortOption>('recent');
   protected activeQuickFilter = signal<string>('all');
   protected showFilterSheet = signal(false);
@@ -246,6 +246,21 @@ export class CatalogComponent implements OnInit {
 
   goBack(): void {
     this.router.navigate(['/']);
+  }
+
+  deleteItem(item: ClothingItem, event: Event): void {
+    event.stopPropagation();
+    if (confirm(`Delete "${item.name}"? This action cannot be undone.`)) {
+      this.catalogService.deleteItem(item.id).subscribe({
+        next: () => {
+          this.clothingItems.set(this.clothingItems().filter(i => i.id !== item.id));
+        },
+        error: (err) => {
+          console.error('Failed to delete item', err);
+          alert('Failed to delete item. Please try again.');
+        }
+      });
+    }
   }
 
   private capitalize(str: string): string {

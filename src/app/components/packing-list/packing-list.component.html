@@ -1,0 +1,75 @@
+<div class="packing-container">
+  <!-- Header -->
+  <div class="packing-header">
+    <button class="back-btn" (click)="goBack()">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+    </button>
+    <h1>Packing List</h1>
+    <div class="header-spacer"></div>
+  </div>
+
+  <!-- Summary -->
+  @if (!loading() && packingDays().length > 0) {
+    <div class="packing-summary">
+      <div class="summary-progress">
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="(getTotalPackedCount() / getTotalCount()) * 100"></div>
+        </div>
+        <span class="progress-text">{{ getTotalPackedCount() }} / {{ getTotalCount() }} items packed</span>
+      </div>
+    </div>
+  }
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading packing list...</p>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!loading() && packingDays().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon">🧳</div>
+      <h2>No Packing Needed</h2>
+      <p>You don't have any days with multiple different dress codes this week.</p>
+      <p class="empty-hint">Packing lists are generated when you have 2+ events with different dress codes on the same day.</p>
+      <button class="btn btn-primary" (click)="goBack()">Back to Planner</button>
+    </div>
+  }
+
+  <!-- Packing Days -->
+  @if (!loading() && packingDays().length > 0) {
+    <div class="packing-days">
+      @for (day of packingDays(); track day.date) {
+        <div class="day-section">
+          <div class="day-header">
+            <h2>{{ day.dayName }}</h2>
+            <span class="day-progress">{{ getPackedCount(day.items) }}/{{ day.items.length }}</span>
+          </div>
+          <div class="items-list">
+            @for (item of day.items; track item.id) {
+              <div class="packing-item" [class.packed]="item.packed" (click)="togglePacked(item)">
+                <div class="item-checkbox">
+                  @if (item.packed) {
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  }
+                </div>
+                <div class="item-icon">{{ getItemIcon(item.type) }}</div>
+                <div class="item-details">
+                  <span class="item-name">{{ item.name }}</span>
+                  <span class="item-event">{{ item.forEvent }} - {{ item.dressCode }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
