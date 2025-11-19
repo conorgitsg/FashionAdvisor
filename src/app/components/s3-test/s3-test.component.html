@@ -1,0 +1,58 @@
+<div class="s3-test-container">
+  <h2>S3 Connectivity Test</h2>
+
+  <div class="status-section">
+    <p class="status" [class]="status()">
+      Status: {{ status() | titlecase }}
+    </p>
+    @if (message()) {
+      <p class="message">{{ message() }}</p>
+    }
+  </div>
+
+  <div class="actions">
+    <button (click)="testConnection()" [disabled]="status() === 'loading'">
+      Test Connection
+    </button>
+  </div>
+
+  <div class="upload-section">
+    <h3>Upload Image</h3>
+    <input
+      type="file"
+      accept="image/*"
+      (change)="onFileSelected($event)"
+      [disabled]="status() === 'loading'"
+    />
+    <button
+      (click)="uploadImage()"
+      [disabled]="!selectedFile() || status() === 'loading'"
+    >
+      Upload
+    </button>
+    @if (uploadProgress()) {
+      <p class="progress">{{ uploadProgress() }}</p>
+    }
+  </div>
+
+  @if (images().length > 0) {
+    <div class="images-section">
+      <h3>Images in Bucket</h3>
+      <ul class="image-list">
+        @for (image of images(); track image.key) {
+          <li>
+            <div class="image-info">
+              <strong>{{ image.filename }}</strong>
+              <span class="size">{{ (image.size / 1024).toFixed(2) }} KB</span>
+              <span class="date">{{ image.uploadedAt | date:'short' }}</span>
+            </div>
+            <div class="image-actions">
+              <a [href]="image.url" target="_blank">View</a>
+              <button class="delete-btn" (click)="deleteImage(image.key)">Delete</button>
+            </div>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</div>

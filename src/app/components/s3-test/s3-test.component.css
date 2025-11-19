@@ -1,0 +1,150 @@
+.s3-test-container {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  font-family: system-ui, sans-serif;
+}
+
+h2 {
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+h3 {
+  margin: 1.5rem 0 1rem;
+  color: #555;
+}
+
+.status-section {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border-radius: 4px;
+  background: #f5f5f5;
+}
+
+.status {
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.status.idle {
+  color: #666;
+}
+
+.status.loading {
+  color: #0066cc;
+}
+
+.status.success {
+  color: #22863a;
+}
+
+.status.error {
+  color: #cb2431;
+}
+
+.message {
+  margin: 0;
+  word-break: break-word;
+}
+
+.actions {
+  margin-bottom: 1.5rem;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  background: #0066cc;
+  color: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+button:hover:not(:disabled) {
+  background: #0052a3;
+}
+
+button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.upload-section {
+  padding: 1rem;
+  border: 2px dashed #ddd;
+  border-radius: 4px;
+}
+
+.upload-section input[type="file"] {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.progress {
+  margin: 0.5rem 0 0;
+  color: #0066cc;
+}
+
+.images-section {
+  margin-top: 1.5rem;
+}
+
+.image-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.image-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border-bottom: 1px solid #eee;
+}
+
+.image-list li:last-child {
+  border-bottom: none;
+}
+
+.image-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.image-info strong {
+  color: #333;
+}
+
+.size, .date {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.image-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.image-actions a {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.image-actions a:hover {
+  text-decoration: underline;
+}
+
+.delete-btn {
+  background: #cb2431;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.delete-btn:hover:not(:disabled) {
+  background: #a61d29;
+}
