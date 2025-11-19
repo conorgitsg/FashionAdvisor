@@ -136,15 +136,19 @@
   padding: 1rem;
 }
 
-.tag-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 0.75rem;
-  font-size: 0.9rem;
+.tag-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.5rem;
+  margin: 0.75rem 0;
 }
 
-.tag-list li {
-  margin-bottom: 0.25rem;
+.tag-item {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9rem;
 }
 
 .note {

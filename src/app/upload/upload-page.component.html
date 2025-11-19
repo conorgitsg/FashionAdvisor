@@ -86,7 +86,7 @@
             </div>
           } @else {
             <div class="preview-placeholder">
-              Waiting for background removal…
+              Waiting for background removal...
             </div>
           }
         </div>
@@ -104,24 +104,26 @@
   <!-- AI TAGGING RESULT -->
   @if (aiResult) {
     <section class="ai-result">
-      <h2 class="panel-title">Detected details (stub)</h2>
-      <ul class="tag-list">
-        <li><strong>Category:</strong> {{ aiResult.category }}</li>
-        <li><strong>Colors:</strong> {{ aiResult.colors.join(', ') }}</li>
-        <li><strong>Seasons:</strong> {{ aiResult.seasons.join(', ') }}</li>
-        <li><strong>Occasions:</strong> {{ aiResult.occasions.join(', ') }}</li>
-        <li><strong>Pattern:</strong> {{ aiResult.pattern }}</li>
-        @if (aiResult.notes) {
-          <li>
-            <strong>Notes:</strong> {{ aiResult.notes }}
-          </li>
-        }
-      </ul>
+      <h2 class="panel-title">AI stylist tags</h2>
+      <div class="tag-grid">
+        <div class="tag-item"><strong>Item name:</strong> {{ aiResult.tags.item_name || 'N/A' }}</div>
+        <div class="tag-item"><strong>Broad category:</strong> {{ aiResult.tags.broad_category || 'N/A' }}</div>
+        <div class="tag-item"><strong>Sub-category:</strong> {{ aiResult.tags.sub_category || 'N/A' }}</div>
+        <div class="tag-item"><strong>Silhouette:</strong> {{ aiResult.tags.silhouette || 'N/A' }}</div>
+        <div class="tag-item"><strong>Materials:</strong> {{ aiResult.tags.materials || 'N/A' }}</div>
+        <div class="tag-item"><strong>Colors:</strong> {{ aiResult.tags.colors?.join(', ') || 'N/A' }}</div>
+        <div class="tag-item"><strong>Patterns:</strong> {{ aiResult.tags.patterns || 'N/A' }}</div>
+        <div class="tag-item"><strong>Construction:</strong> {{ aiResult.tags.construction_details || 'N/A' }}</div>
+        <div class="tag-item"><strong>Style vibe:</strong> {{ aiResult.tags.style_vibe || 'N/A' }}</div>
+        <div class="tag-item"><strong>Best pairings:</strong> {{ aiResult.tags.best_pairings?.join(', ') || 'N/A' }}</div>
+        <div class="tag-item"><strong>Seasonality:</strong> {{ aiResult.tags.seasonality?.join(', ') || 'N/A' }}</div>
+        <div class="tag-item"><strong>Tags:</strong> {{ aiResult.tags.tags?.join(', ') || 'N/A' }}</div>
+      </div>
 
-      <p class="note">
-        These values are placeholders for now. Once the AI integration is ready,
-        this section will show real tags that feed into your Item Catalogue.
-      </p>
+      <div class="note">
+        <p><strong>Image saved:</strong> {{ aiResult.imageUrl }}</p>
+        <p>This data comes from the backend vision tagging endpoint (standard prompt + GPT-4o). Use it to pre-fill the Item Catalogue.</p>
+      </div>
     </section>
   }
 </div>

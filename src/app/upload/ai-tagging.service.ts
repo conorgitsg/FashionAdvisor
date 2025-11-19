@@ -1,39 +1,65 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
 
-export interface AiTagResult {
-  category: string;
+export interface WardrobeTags {
+  item_name: string;
+  broad_category: string;
+  sub_category: string;
+  silhouette: string;
+  materials: string;
   colors: string[];
-  seasons: string[];
-  occasions: string[];
-  pattern: string;
-  notes?: string;
+  patterns: string;
+  construction_details: string;
+  style_vibe: string;
+  best_pairings: string[];
+  seasonality: string[];
+  tags: string[];
+}
+
+export interface WardrobeTagResponse {
+  itemId: string;
+  s3Key: string;
+  imageUrl: string;
+  tags: WardrobeTags;
+  rawGpt?: unknown;
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class AiTaggingService {
-  /**
-   * Placeholder implementation.
-   *
-   * Later, this is where you'll:
-   *  - Send the image (or its URL) to your backend
-   *  - Call your AI Vision / LLM stack
-   *  - Parse the response into this AiTagResult shape
-   */
-  async analyzeImage(file: Blob): Promise<AiTagResult> {
-    console.log('Stub AI tagging received file of size:', file.size);
+  private readonly http = inject(HttpClient);
 
-    // TODO: Replace with real AI integration.
-    // Hard-coded placeholder values to prove the flow works.
-    return {
-      category: 'Unknown item (stub)',
-      colors: ['unspecified'],
-      seasons: ['all-season'],
-      occasions: ['everyday'],
-      pattern: 'unknown',
-      notes:
-        'This is a stub result. Once AI integration is wired, you will see real tags here.',
-    };
+  /**
+   * Send the clothing image to the backend tagging endpoint.
+   * The backend handles background removal, uploads to S3, and calls OpenAI Vision with the standard prompt.
+   */
+  async analyzeImage(file: Blob): Promise<WardrobeTagResponse> {
+    const preparedFile =
+      file instanceof File
+        ? file
+        : new File([file], 'wardrobe-item.jpg', {
+          type: (file as Blob).type || 'image/jpeg',
+        });
+
+    const formData = new FormData();
+    formData.append('image', preparedFile, preparedFile.name);
+
+    try {
+      return await firstValueFrom(
+        this.http.post<WardrobeTagResponse>(
+          `${environment.apiUrl}/wardrobe/items/tag`,
+          formData
+        )
+      );
+    } catch (error) {
+      const message =
+        error instanceof HttpErrorResponse && error.error?.message
+          ? error.error.message
+          : 'Tagging failed. Please try again.';
+      throw new Error(message);
+    }
   }
 }
