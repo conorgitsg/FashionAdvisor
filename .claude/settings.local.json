@@ -3,7 +3,9 @@
     "allow": [
       "Bash(dir \"C:\\projects\\software\\FashionAdvisor\" /B)",
       "Bash(tree:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

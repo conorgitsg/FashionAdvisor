@@ -119,9 +119,16 @@ protected readonly title = signal('FashionAdvisor');
 ```
 src/app/
   components/
+    landing-page/         # Main landing page with hero, features, footer
+    onboarding/           # Multi-step onboarding wizard (8 screens)
+    placeholder/          # Reusable placeholder for unbuilt pages
     s3-test/              # S3 upload testing component
+    camera-test/          # Camera functionality test page
+  camera/                 # Camera capture component
+  upload/                 # Upload page with camera/file modes
   services/
     s3-image.service.ts   # S3 API client service
+    ai-tagging.service.ts # AI tagging service
   app.ts                  # Root component
   app.routes.ts           # Route configuration
   app.config.ts           # App providers config
@@ -163,8 +170,18 @@ const result = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
 ### Routes
 
 ```typescript
-// src/app/app.routes.ts
+// src/app/app.routes.ts - Main application routes
+{ path: '', loadComponent: () => import('./components/landing-page/landing-page.component') }
+{ path: 'onboarding', loadComponent: () => import('./components/placeholder/placeholder.component') }
+{ path: 'inventory', loadComponent: () => import('./components/placeholder/placeholder.component') }
+{ path: 'mixer', loadComponent: () => import('./components/placeholder/placeholder.component') }
+{ path: 'outfits', loadComponent: () => import('./components/placeholder/placeholder.component') }
+{ path: 'stylist', loadComponent: () => import('./components/placeholder/placeholder.component') }
+{ path: 'planner', loadComponent: () => import('./components/placeholder/placeholder.component') }
 { path: 's3-test', loadComponent: () => import('./components/s3-test/s3-test.component') }
+{ path: 'camera', loadComponent: () => import('./camera/camera-capture.component') }
+{ path: 'camera-test', loadComponent: () => import('./components/camera-test/camera-test.component') }
+{ path: 'upload', loadComponent: () => import('./upload/upload-page.component') }
 ```
 
 ### AWS RDS Setup Requirements
@@ -177,11 +194,70 @@ For the PostgreSQL database connection to work:
 
 ### Current State
 
-The app has S3 connectivity implemented with a test component at `/s3-test`. PostgreSQL database is connected and working. The root template displays a styled hero landing page with the FashionAdvisor design system applied.
+The app has S3 connectivity implemented with a test component at `/s3-test`. PostgreSQL database is connected and working. The landing page displays a full marketing page with hero section, "How It Works" steps, feature previews, and footer.
 
 **Available routes:**
-- `/` - Hero landing page
+- `/` - Full landing page with hero, features, footer
+- `/onboarding` - 8-step onboarding wizard with profile creation
+- `/inventory` - Item Catalogue (placeholder)
+- `/mixer` - Outfit Mixer (placeholder)
+- `/outfits` - Outfit Catalogue (placeholder)
+- `/stylist` - AI Stylist (placeholder)
+- `/planner` - Weekly Planner (placeholder)
+- `/about`, `/privacy`, `/support` - Footer links (placeholders)
 - `/s3-test` - S3 upload testing
 - `/camera` - Camera capture component (standalone)
 - `/camera-test` - Camera functionality test page with gallery
 - `/upload` - Upload page with camera/file modes and AI tagging pipeline
+
+### Landing Page Structure
+
+The landing page (`/`) includes:
+1. **Hero Section** - Split layout with CTA "Start Your Style Profile" linking to `/onboarding`
+2. **How It Works** - 3-column grid (Capture, Auto-Calibration, Style DNA)
+3. **Feature Highlights** - Outfit Mixer preview and Weather-Aware Planning preview
+4. **Footer** - Navigation links and social icons (Instagram, TikTok)
+
+### Placeholder Component
+
+Reusable placeholder component for unbuilt pages. Uses route data for dynamic titles:
+```typescript
+// Usage in routes
+{ path: 'example', loadComponent: () => import('./components/placeholder/placeholder.component'), data: { title: 'Page Title' } }
+```
+
+### Onboarding Flow
+
+The onboarding component (`/onboarding`) is an 8-step wizard that collects user profile data:
+
+1. **Welcome** - App intro with "Get Started" CTA
+2. **Basic Profile** - Name, age range, gender presentation (chips)
+3. **Body & Fit** - Height, weight (optional), body shape (visual cards), fit slider
+4. **Style Preferences** - Style tiles, color bubbles, patterns to avoid
+5. **Wardrobe Upload Intro** - Photo guidelines with option to skip
+6. **Lifestyle & Climate** - Location, activities (chips), weather sensitivity
+7. **Goals** - Multi-select goal cards (save time, maximize wardrobe, etc.)
+8. **Final** - Profile summary with completion CTA
+
+**User Profile Data Structure:**
+```typescript
+interface UserProfile {
+  name: string;
+  ageRange: string;
+  genderPresentation: string;
+  height: number;
+  heightUnit: string;
+  weight: number | null;
+  bodyShape: string;
+  fitPreference: number; // 0-100 (tight to oversized)
+  styles: string[];
+  colors: string[];
+  patternsToAvoid: string[];
+  location: string;
+  activities: string[];
+  weatherSensitivity: string;
+  goals: string[];
+}
+```
+
+Profile is saved to localStorage on completion and user is redirected to `/inventory`.
