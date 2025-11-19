@@ -12,6 +12,7 @@ const {
   HeadObjectCommand
 } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const db = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -50,8 +51,20 @@ app.use(cors({
 app.use(express.json());
 
 // Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', bucket: BUCKET_NAME, region: process.env.AWS_REGION });
+app.get('/api/health', async (req, res) => {
+  const dbHealth = await db.healthCheck();
+  res.json({
+    status: 'ok',
+    bucket: BUCKET_NAME,
+    region: process.env.AWS_REGION,
+    database: dbHealth
+  });
+});
+
+// Database health check
+app.get('/api/db/health', async (req, res) => {
+  const health = await db.healthCheck();
+  res.json(health);
 });
 
 // Upload image
@@ -238,6 +251,19 @@ app.use((error, req, res, next) => {
     return res.status(415).json({ message: 'Unsupported image format' });
   }
   res.status(500).json({ message: error.message });
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('\nShutting down gracefully...');
+  await db.close();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('\nShutting down gracefully...');
+  await db.close();
+  process.exit(0);
 });
 
 app.listen(PORT, () => {
