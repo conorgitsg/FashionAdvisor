@@ -86,7 +86,7 @@ protected readonly title = signal('FashionAdvisor');
 ### Configuration Notes
 
 - **Strict TypeScript**: Full type safety with `strictTemplates`, `strictInjectionParameters`, and `noImplicitReturns`
-- **Bundle Budgets**: 500kB warning / 1MB error for initial bundle
+- **Bundle Budgets**: 500kB warning / 1MB error for initial bundle; 12kB warning / 16kB error for component styles
 - **Component Prefix**: `app`
 - **CSS**: Global design system in `src/styles.css` with CSS variables
 
@@ -124,11 +124,14 @@ src/app/
     placeholder/          # Reusable placeholder for unbuilt pages
     s3-test/              # S3 upload testing component
     camera-test/          # Camera functionality test page
+    daily-outfit/         # Daily smart outfit recommendation page
+    outfit-preferences/   # Tag-based outfit preference input
   camera/                 # Camera capture component
   upload/                 # Upload page with camera/file modes
   services/
     s3-image.service.ts   # S3 API client service
     ai-tagging.service.ts # AI tagging service
+    daily-outfit.service.ts # Daily outfit recommendation API service
   app.ts                  # Root component
   app.routes.ts           # Route configuration
   app.config.ts           # App providers config
@@ -182,6 +185,8 @@ const result = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
 { path: 'camera', loadComponent: () => import('./camera/camera-capture.component') }
 { path: 'camera-test', loadComponent: () => import('./components/camera-test/camera-test.component') }
 { path: 'upload', loadComponent: () => import('./upload/upload-page.component') }
+{ path: 'daily-outfit', loadComponent: () => import('./components/daily-outfit/daily-outfit.component') }
+{ path: 'daily-outfit/preferences', loadComponent: () => import('./components/outfit-preferences/outfit-preferences.component') }
 ```
 
 ### AWS RDS Setup Requirements
@@ -209,13 +214,15 @@ The app has S3 connectivity implemented with a test component at `/s3-test`. Pos
 - `/camera` - Camera capture component (standalone)
 - `/camera-test` - Camera functionality test page with gallery
 - `/upload` - Upload page with camera/file modes and AI tagging pipeline
+- `/daily-outfit` - Daily smart outfit recommendation with weather integration
+- `/daily-outfit/preferences` - Tag-based preference input for personalized outfits
 
 ### Landing Page Structure
 
 The landing page (`/`) includes:
 1. **Hero Section** - Split layout with CTA "Start Your Style Profile" linking to `/onboarding`
 2. **How It Works** - 3-column grid (Capture, Auto-Calibration, Style DNA)
-3. **Feature Highlights** - Outfit Mixer preview and Weather-Aware Planning preview
+3. **Feature Highlights** - Outfit Mixer preview, Weather-Aware Planning preview, and Daily Smart Outfit preview
 4. **Footer** - Navigation links and social icons (Instagram, TikTok)
 
 ### Placeholder Component
@@ -261,3 +268,53 @@ interface UserProfile {
 ```
 
 Profile is saved to localStorage on completion and user is redirected to `/inventory`.
+
+### Daily Outfit Feature
+
+The daily outfit feature provides AI-powered outfit recommendations based on weather and user preferences.
+
+**Daily Outfit Page** (`/daily-outfit`):
+- Weather display (temperature, feels like, condition icon)
+- Main outfit recommendation with clothing items (top, bottom, shoes, accessory)
+- "Wear This" button to log outfit as worn
+- "Why this outfit?" explanation section
+- 3 alternative outfit cards (expandable with "Wear This Instead" option)
+- Preferences button to navigate to tag input
+
+**Preferences Page** (`/daily-outfit/preferences`):
+- Text input for adding custom tags (max 10)
+- 6 quick-add preset tags: Casual, Workwear, Summer, Comfy, Dressy, Minimalist
+- Tag removal with × button
+- Example tags section (style, occasion, weather, items)
+- "Find Outfit" submits tags and returns personalized recommendation
+
+**DailyOutfitService** (`src/app/services/daily-outfit.service.ts`):
+- `getDailyOutfit()` - Get default daily recommendation
+- `getOutfitByPreferences(tags)` - Get outfit based on user tags
+- `markAsWorn(outfitId)` - Log outfit as worn today
+
+**Data Structures:**
+```typescript
+interface WeatherInfo {
+  temperature: number;
+  feelsLike: number;
+  condition: string;
+  icon: string;
+  rainChance?: number;
+}
+
+interface OutfitItem {
+  id: string;
+  name: string;
+  type: 'top' | 'bottom' | 'shoes' | 'accessory';
+  imageUrl: string;
+  color?: string;
+}
+
+interface OutfitRecommendation {
+  id: string;
+  items: OutfitItem[];
+  reason: string;
+  isAlternative?: boolean;
+}
+```

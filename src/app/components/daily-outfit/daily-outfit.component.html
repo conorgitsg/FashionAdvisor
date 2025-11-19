@@ -1,0 +1,145 @@
+<div class="daily-outfit-page">
+  <!-- Header -->
+  <header class="header">
+    <button class="back-btn" (click)="goBack()">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+    </button>
+    <h1>Today's Outfit</h1>
+    <button class="preferences-btn" (click)="openPreferences()">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="M21 21l-4.35-4.35"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Finding your perfect outfit...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-state">
+      <p>{{ error() }}</p>
+      <button class="btn btn-primary" (click)="loadDailyOutfit()">Try Again</button>
+    </div>
+  }
+
+  <!-- Content -->
+  @if (data() && !loading()) {
+    <div class="content">
+      <!-- Weather Section -->
+      <section class="weather-section">
+        <div class="weather-icon">{{ getWeatherIcon(data()!.weather.icon) }}</div>
+        <div class="weather-info">
+          <span class="temperature">{{ data()!.weather.temperature }}°C</span>
+          <span class="condition">{{ data()!.weather.condition }}</span>
+          <span class="feels-like">Feels like {{ data()!.weather.feelsLike }}°C</span>
+        </div>
+      </section>
+
+      <!-- Applied Tags -->
+      @if (appliedTags().length > 0) {
+        <section class="applied-tags-section">
+          <span class="applied-label">Personalized for:</span>
+          <div class="applied-tags">
+            @for (tag of appliedTags(); track tag) {
+              <span class="applied-tag">{{ tag }}</span>
+            }
+          </div>
+        </section>
+      }
+
+      <!-- Main Outfit -->
+      <section class="main-outfit">
+        <h2>Recommended for You</h2>
+        <div class="outfit-display">
+          <div class="outfit-items">
+            @for (item of data()!.mainOutfit.items; track item.id) {
+              <div class="outfit-item">
+                <div class="item-image-placeholder" [attr.data-type]="item.type">
+                  <span class="item-type-icon">
+                    @switch (item.type) {
+                      @case ('top') { 👕 }
+                      @case ('bottom') { 👖 }
+                      @case ('shoes') { 👟 }
+                      @case ('accessory') { 🎒 }
+                    }
+                  </span>
+                </div>
+                <span class="item-name">{{ item.name }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <button
+          class="btn btn-primary btn-lg wear-btn"
+          (click)="wearOutfit(data()!.mainOutfit)"
+          [disabled]="wearingOutfit()">
+          @if (wearingOutfit()) {
+            Saving...
+          } @else {
+            Wear This
+          }
+        </button>
+      </section>
+
+      <!-- Why This Outfit -->
+      <section class="reason-section">
+        <h3>Why this outfit?</h3>
+        <p>{{ data()!.mainOutfit.reason }}</p>
+      </section>
+
+      <!-- Alternatives -->
+      <section class="alternatives-section">
+        <h3>Alternatives</h3>
+        <div class="alternatives-grid">
+          @for (alt of data()!.alternatives; track alt.id) {
+            <div
+              class="alternative-card"
+              [class.expanded]="expandedAlternative() === alt.id"
+              (click)="toggleAlternative(alt.id)">
+              <div class="alt-preview">
+                <div class="alt-items">
+                  @for (item of alt.items; track item.id) {
+                    <span class="alt-item-icon">
+                      @switch (item.type) {
+                        @case ('top') { 👕 }
+                        @case ('bottom') { 👖 }
+                        @case ('shoes') { 👟 }
+                        @case ('accessory') { 🎒 }
+                      }
+                    </span>
+                  }
+                </div>
+              </div>
+
+              @if (expandedAlternative() === alt.id) {
+                <div class="alt-details" (click)="$event.stopPropagation()">
+                  <div class="alt-items-list">
+                    @for (item of alt.items; track item.id) {
+                      <span class="alt-item-name">{{ item.name }}</span>
+                    }
+                  </div>
+                  <p class="alt-reason">{{ alt.reason }}</p>
+                  <button
+                    class="btn btn-secondary"
+                    (click)="useAlternative(alt)">
+                    Wear This Instead
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </section>
+    </div>
+  }
+</div>

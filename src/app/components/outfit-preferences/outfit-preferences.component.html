@@ -1,0 +1,106 @@
+<div class="preferences-page">
+  <!-- Header -->
+  <header class="header">
+    <button class="back-btn" (click)="goBack()">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+    </button>
+    <h1>Enter Your Preferences</h1>
+    <div class="header-spacer"></div>
+  </header>
+
+  <div class="content">
+    <!-- Instructions -->
+    <p class="instructions">
+      Add tags to guide the AI in selecting your outfit. You can use style names, occasions, colors, or specific items.
+    </p>
+
+    <!-- Input Section -->
+    <div class="input-section">
+      <div class="input-wrapper">
+        <input
+          type="text"
+          [value]="inputValue()"
+          (input)="inputValue.set($any($event.target).value)"
+          (keydown)="onKeydown($event)"
+          placeholder="Type a preference and press Enter..."
+          [disabled]="tags().length >= maxTags"
+        />
+        @if (inputValue()) {
+          <button class="add-btn" (click)="addTag(inputValue())">Add</button>
+        }
+      </div>
+      <span class="tag-count">{{ tags().length }}/{{ maxTags }} tags</span>
+    </div>
+
+    <!-- Current Tags -->
+    @if (tags().length > 0) {
+      <div class="tags-section">
+        <div class="tags-header">
+          <h3>Your Preferences</h3>
+          <button class="clear-btn" (click)="clearAll()">Clear All</button>
+        </div>
+        <div class="tags-list">
+          @for (tag of tags(); track tag) {
+            <span class="tag">
+              {{ tag }}
+              <button class="tag-remove" (click)="removeTag(tag)">×</button>
+            </span>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Quick Tags -->
+    <div class="quick-tags-section">
+      <h3>Quick Add</h3>
+      <div class="quick-tags">
+        @for (tag of quickTags; track tag) {
+          <button
+            class="quick-tag"
+            [class.selected]="isQuickTagSelected(tag)"
+            (click)="addQuickTag(tag)"
+            [disabled]="isQuickTagSelected(tag) || tags().length >= maxTags">
+            {{ tag }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Example Tags -->
+    <div class="examples-section">
+      <h3>Example Tags</h3>
+      <div class="examples-grid">
+        <div class="example-category">
+          <h4>Style</h4>
+          <p>casual, smart casual, minimalist, sporty, cute outfit</p>
+        </div>
+        <div class="example-category">
+          <h4>Occasion</h4>
+          <p>date night, brunch, meeting-ready, travel outfit</p>
+        </div>
+        <div class="example-category">
+          <h4>Weather</h4>
+          <p>lightweight, warm outfit, summer, breathable, rain-friendly</p>
+        </div>
+        <div class="example-category">
+          <h4>Items</h4>
+          <p>pants, skirts only, white top, denim jacket, pastel colors</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit Button -->
+    <button
+      class="btn btn-primary btn-lg submit-btn"
+      (click)="findOutfit()"
+      [disabled]="loading()">
+      @if (loading()) {
+        Finding Outfit...
+      } @else {
+        Find Outfit
+      }
+    </button>
+  </div>
+</div>

@@ -73,5 +73,19 @@ export const routes: Routes = [
       import('./upload/upload-page.component').then(
         (m) => m.UploadPageComponent
       ),
+  },
+  {
+    path: 'daily-outfit',
+    loadComponent: () =>
+      import('./components/daily-outfit/daily-outfit.component').then(
+        (m) => m.DailyOutfitComponent
+      ),
+  },
+  {
+    path: 'daily-outfit/preferences',
+    loadComponent: () =>
+      import('./components/outfit-preferences/outfit-preferences.component').then(
+        (m) => m.OutfitPreferencesComponent
+      ),
   }
 ];
