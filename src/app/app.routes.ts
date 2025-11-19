@@ -13,6 +13,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'camera-test',
+    loadComponent: () =>
+      import('./components/camera-test/camera-test.component').then(
+        (m) => m.CameraTestComponent
+      ),
+  },
+  {
     path: 'upload',
     loadComponent: () =>
       import('./upload/upload-page.component').then(

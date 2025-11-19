@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, OnDestroy, OnInit, Output, ViewChild, ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-camera-capture',
@@ -18,6 +18,8 @@ export class CameraCaptureComponent implements OnInit, OnDestroy {
   capturedDataUrl: string | null = null;
 
   private mediaStream: MediaStream | null = null;
+
+  constructor(private cdr: ChangeDetectorRef) {}
 
   async ngOnInit(): Promise<void> {
     // We don't auto-start the camera to avoid permission popups on load.
@@ -44,16 +46,27 @@ export class CameraCaptureComponent implements OnInit, OnDestroy {
       });
 
       this.mediaStream = stream;
-      const video = this.videoRef.nativeElement;
-      video.srcObject = stream;
-
-      await video.play();
       this.isCameraActive = true;
       this.hasCaptured = false;
       this.capturedDataUrl = null;
+
+      // Wait for the view to update so videoRef is available
+      this.cdr.detectChanges();
+
+      // Small delay to ensure DOM is ready
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      if (this.videoRef) {
+        const video = this.videoRef.nativeElement;
+        video.srcObject = stream;
+        await video.play();
+      } else {
+        throw new Error('Video element not available');
+      }
     } catch (err) {
       console.error('Error starting camera', err);
       this.errorMessage = 'Unable to access camera. Please check permissions.';
+      this.isCameraActive = false;
     }
   }
 

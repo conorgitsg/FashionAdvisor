@@ -1,0 +1,38 @@
+<div class="camera-test-page">
+  <h1>Camera Test</h1>
+  <p class="subtitle">Test the camera capture functionality</p>
+
+  <div class="camera-section">
+    <app-camera-capture (photoCaptured)="onPhotoCaptured($event)"></app-camera-capture>
+  </div>
+
+  <div class="stats-section">
+    <div class="stat-card">
+      <span class="stat-label">Photos Captured</span>
+      <span class="stat-value">{{ captureCount() }}</span>
+    </div>
+    @if (lastCaptureTime()) {
+      <div class="stat-card">
+        <span class="stat-label">Last Capture</span>
+        <span class="stat-value">{{ lastCaptureTime() }}</span>
+      </div>
+    }
+  </div>
+
+  @if (capturedImages().length > 0) {
+    <div class="gallery-section">
+      <div class="gallery-header">
+        <h2>Captured Images</h2>
+        <button class="btn btn-secondary" (click)="clearImages()">Clear All</button>
+      </div>
+      <div class="gallery-grid">
+        @for (image of capturedImages(); track $index) {
+          <div class="gallery-item">
+            <img [src]="image" alt="Captured photo {{ $index + 1 }}">
+            <span class="gallery-label">Photo {{ $index + 1 }}</span>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
