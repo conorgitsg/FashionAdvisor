@@ -939,6 +939,20 @@ function formatOutfitForDaily(outfit, fallbackReason = '') {
   };
 }
 
+function formatOutfitForPlanner(outfit) {
+  if (!outfit) return null;
+  return {
+    id: outfit.id,
+    items: (outfit.items || []).map((item) => ({
+      id: item.id,
+      name: item.name,
+      type: item.type,
+      imageUrl: item.imageUrl,
+      color: Array.isArray(item.colors) ? item.colors[0] : null
+    }))
+  };
+}
+
 async function fetchWardrobeItemsForOutfits(ids = []) {
   const map = new Map();
   if (!ids || ids.length === 0) {
@@ -1016,4 +1030,81 @@ function normalizeOutfitTags(tags) {
 function normalizeItemIds(items) {
   if (!Array.isArray(items)) return '';
   return [...items].filter(Boolean).map(String).sort().join('|');
+}
+
+function normalizePlannerDayEntry(entry = {}) {
+  const date = entry.date ? new Date(entry.date) : new Date();
+  return {
+    date: date.toISOString().split('T')[0],
+    events: Array.isArray(entry.events) ? entry.events : [],
+    weather: entry.weather || null
+  };
+}
+
+async function planWeeklyOutfits(dayEntries, user, rules) {
+  const responses = [];
+  const usedRestrictedItems = new Set();
+  const usedOutfitIds = new Set();
+  const existingOutfits = await getDetailedOutfits();
+  const flexibleTypes = new Set(['outerwear', 'shoes']);
+  const restrictedTypes = new Set(['top', 'bottom', 'dress']);
+  const available = [...existingOutfits];
+
+  for (const day of dayEntries) {
+    let selected = pickOutfit(available, usedOutfitIds, usedRestrictedItems, restrictedTypes);
+
+    if (!selected) {
+      // Allow reuse even if restricted items already used
+      selected = pickOutfit(available, usedOutfitIds, null, restrictedTypes, true);
+    }
+
+    if (!selected) {
+      const { results } = await generateStylistRecommendations(user, [{
+        date: day.date,
+        weather: day.weather,
+        events: day.events
+      }], rules);
+      if (results.length && results[0].outfitId) {
+        const detailed = await getDetailedOutfits([results[0].outfitId]);
+        selected = detailed[0];
+      }
+    }
+
+    if (selected) {
+      usedOutfitIds.add(selected.id);
+      if (selected.items && restrictedTypes) {
+        selected.items.forEach((item) => {
+          if (restrictedTypes.has((item.type || '').toLowerCase())) {
+            usedRestrictedItems.add(item.id);
+          }
+        });
+      }
+
+      responses.push({
+        date: day.date,
+        outfitId: selected.id,
+        outfit: formatOutfitForPlanner(selected)
+      });
+    }
+  }
+
+  return { days: responses };
+}
+
+function pickOutfit(available, usedOutfitIds, usedRestrictedItems, restrictedTypes, allowRestrictedReuse = false) {
+  for (let i = 0; i < available.length; i++) {
+    const outfit = available[i];
+    if (usedOutfitIds.has(outfit.id)) continue;
+
+    if (!allowRestrictedReuse && usedRestrictedItems && restrictedTypes) {
+      const conflicts = outfit.items?.some((item) =>
+        restrictedTypes.has((item.type || '').toLowerCase()) && usedRestrictedItems.has(item.id)
+      );
+      if (conflicts) continue;
+    }
+
+    available.splice(i, 1);
+    return outfit;
+  }
+  return null;
 }

@@ -18,6 +18,18 @@
     </div>
   </div>
 
+  <div class="plan-week-actions">
+    <button class="plan-week-btn" (click)="planWeekOutfits()" [disabled]="planningWeek()">
+      Plan Outfits for the Week
+    </button>
+    @if (planningWeek()) {
+      <span class="planning-status">Planning outfits...</span>
+    }
+  </div>
+  @if (planError()) {
+    <div class="plan-error">{{ planError() }}</div>
+  }
+
   <!-- Weekly Grid -->
   @if (week()) {
     <div class="week-grid">

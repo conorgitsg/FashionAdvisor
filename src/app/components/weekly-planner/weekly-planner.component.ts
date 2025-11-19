@@ -17,6 +17,8 @@ export class WeeklyPlannerComponent implements OnInit {
   showEventModal = signal(false);
   showOutfitModal = signal(false);
   editingEvent = signal<PlannerEvent | null>(null);
+  planningWeek = signal(false);
+  planError = signal<string | null>(null);
 
   newEvent: Partial<PlannerEvent> = {
     title: '',
@@ -126,6 +128,32 @@ export class WeeklyPlannerComponent implements OnInit {
   suggestOutfit(day: PlannerDay): void {
     this.plannerService.suggestOutfit(day.date, day.events).subscribe(outfit => {
       day.outfit = outfit;
+    });
+  }
+
+  planWeekOutfits(): void {
+    const currentWeek = this.week();
+    if (!currentWeek) return;
+    this.planningWeek.set(true);
+    this.planError.set(null);
+
+    this.plannerService.planOutfitsForWeek(currentWeek.days).subscribe({
+      next: (plannedDays) => {
+        for (const entry of plannedDays) {
+          const targetDay = currentWeek.days.find(
+            (d) => d.date.toISOString().split('T')[0] === entry.date && entry.outfit
+          );
+          if (targetDay && entry.outfit) {
+            targetDay.outfit = entry.outfit;
+          }
+        }
+        this.planningWeek.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to plan week outfits', err);
+        this.planError.set('Unable to plan outfits right now. Please try again soon.');
+        this.planningWeek.set(false);
+      }
     });
   }
 

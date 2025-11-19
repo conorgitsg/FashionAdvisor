@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Observable, of, map } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface PlannerEvent {
   id: string;
@@ -48,6 +50,9 @@ export interface PlannerWeek {
   providedIn: 'root'
 })
 export class WeeklyPlannerService {
+  private readonly apiUrl = environment.apiUrl;
+
+  constructor(private http: HttpClient) {}
 
   getCurrentWeek(): Observable<PlannerWeek> {
     const today = new Date();
@@ -124,6 +129,30 @@ export class WeeklyPlannerService {
       occasion: events[0]?.dressCode || 'Casual'
     };
     return of(mockOutfit);
+  }
+
+  planOutfitsForWeek(days: PlannerDay[]): Observable<Array<{ date: string; outfit: DayOutfit }>> {
+    const payload = {
+      days: days.map((day) => ({
+        date: day.date.toISOString().split('T')[0],
+        events: day.events.map((event) => ({
+          id: event.id,
+          title: event.title,
+          dressCode: event.dressCode
+        })),
+        weather: day.weather
+          ? {
+              condition: day.weather.condition,
+              temperature: day.weather.temperature,
+              icon: day.weather.icon
+            }
+          : null
+      }))
+    };
+
+    return this.http
+      .post<{ days: Array<{ date: string; outfit: DayOutfit }> }>(`${this.apiUrl}/stylist/weekly`, payload)
+      .pipe(map((response) => response.days || []));
   }
 
   private getStartOfWeek(date: Date): Date {
