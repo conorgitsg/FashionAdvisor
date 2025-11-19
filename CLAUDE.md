@@ -88,7 +88,31 @@ protected readonly title = signal('FashionAdvisor');
 - **Strict TypeScript**: Full type safety with `strictTemplates`, `strictInjectionParameters`, and `noImplicitReturns`
 - **Bundle Budgets**: 500kB warning / 1MB error for initial bundle
 - **Component Prefix**: `app`
-- **CSS**: Component-scoped styles with CSS variables (OKLCH color space)
+- **CSS**: Global design system in `src/styles.css` with CSS variables
+
+### Design System
+
+**Color Palette** (defined in `src/styles.css`):
+- Primary: `#D5ADB8` (Mauve Pink)
+- Background: `#FAF9F6` (Soft Beige)
+- Text Primary: `#2B2B2B` (Charcoal)
+- Text Secondary: `#6E6E6E` (Muted Gray)
+- Border: `#E5E5E5` (Light Gray)
+- Accent: `#EFEAFC` (Soft Lilac)
+
+**Typography**: Inter font family, bold headers, medium labels
+
+**Components Available**:
+- `.btn`, `.btn-primary`, `.btn-secondary`, `.btn-lg`, `.btn-sm`
+- `.card`, `.card-hover`
+- `.tag`, `.tag-remove`
+- `.upload-area`, `.upload-icon`
+- `.form-group`, form elements
+- `.container`, `.container-sm`, `.container-md`
+
+**Spacing Variables**: `--spacing-xs` (4px) through `--spacing-2xl` (48px)
+
+**Border Radius**: `--radius-sm` (8px) through `--radius-full` (9999px)
 
 ### Project Structure
 
@@ -153,4 +177,4 @@ For the PostgreSQL database connection to work:
 
 ### Current State
 
-The app has S3 connectivity implemented with a test component at `/s3-test`. PostgreSQL database service is configured but requires AWS RDS network setup. The root template displays Angular's default welcome screen.
+The app has S3 connectivity implemented with a test component at `/s3-test`. PostgreSQL database service is configured but requires AWS RDS network setup. The root template displays a styled hero landing page with the FashionAdvisor design system applied.

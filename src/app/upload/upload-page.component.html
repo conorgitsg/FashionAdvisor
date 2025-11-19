@@ -1,0 +1,84 @@
+<div class="upload-page">
+  <h2>Add to Wardrobe</h2>
+
+  <div class="mode-toggle">
+    <button
+      class="btn"
+      [class.btn-primary]="mode === 'camera'"
+      [class.btn-secondary]="mode !== 'camera'"
+      (click)="switchMode('camera')">
+      Camera
+    </button>
+    <button
+      class="btn"
+      [class.btn-primary]="mode === 'file'"
+      [class.btn-secondary]="mode !== 'file'"
+      (click)="switchMode('file')">
+      Upload File
+    </button>
+  </div>
+
+  @if (mode === 'camera') {
+    <app-camera-capture (photoCaptured)="onPhotoCaptured($event)"></app-camera-capture>
+  }
+
+  @if (mode === 'file') {
+    <div class="upload-area">
+      <div class="upload-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17,8 12,3 7,8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+      </div>
+      <p>Click to upload or drag and drop</p>
+      <input
+        type="file"
+        accept="image/*"
+        (change)="onFileSelected($event)"
+        class="file-input">
+    </div>
+  }
+
+  @if (status === 'processing') {
+    <div class="status-message processing">
+      {{ statusMessage }}
+    </div>
+  }
+
+  @if (status === 'error') {
+    <div class="status-message error">
+      {{ statusMessage }}
+    </div>
+  }
+
+  @if (status === 'done') {
+    <div class="results">
+      <div class="status-message success">
+        {{ statusMessage }}
+      </div>
+
+      @if (processedPreviewUrl) {
+        <div class="preview">
+          <img [src]="processedPreviewUrl" alt="Processed image">
+        </div>
+      }
+
+      @if (aiResult) {
+        <div class="ai-tags">
+          <h4>AI Analysis</h4>
+          <p><strong>Category:</strong> {{ aiResult.category }}</p>
+          <p><strong>Color:</strong> {{ aiResult.color }}</p>
+          <p><strong>Style:</strong> {{ aiResult.style }}</p>
+          @if (aiResult.tags.length > 0) {
+            <div class="tags">
+              @for (tag of aiResult.tags; track tag) {
+                <span class="tag">{{ tag }}</span>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

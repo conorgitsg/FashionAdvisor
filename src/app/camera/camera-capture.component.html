@@ -6,77 +6,88 @@
   </p>
 
   <div class="camera-frame" [class.camera-frame--inactive]="!isCameraActive && !hasCaptured">
-    <video
-      #video
-      *ngIf="isCameraActive && !hasCaptured"
-      class="camera-video"
-      autoplay
-      playsinline
-      muted
-    ></video>
+    @if (isCameraActive && !hasCaptured) {
+      <video
+        #video
+        class="camera-video"
+        autoplay
+        playsinline
+        muted
+      ></video>
+    }
 
     <canvas #canvas class="camera-canvas" hidden></canvas>
 
-    <img
-      *ngIf="hasCaptured && capturedDataUrl"
-      [src]="capturedDataUrl"
-      alt="Captured item preview"
-      class="camera-preview"
-    />
+    @if (hasCaptured && capturedDataUrl) {
+      <img
+        [src]="capturedDataUrl"
+        alt="Captured item preview"
+        class="camera-preview"
+      />
+    }
 
-    <div *ngIf="!isCameraActive && !hasCaptured" class="camera-placeholder">
-      <span>Camera is off. Tap "Start camera" to begin.</span>
+    @if (!isCameraActive && !hasCaptured) {
+      <div class="camera-placeholder">
+        <span>Camera is off. Tap "Start camera" to begin.</span>
+      </div>
+    }
+  </div>
+
+  @if (errorMessage) {
+    <div class="error">
+      {{ errorMessage }}
     </div>
-  </div>
-
-  <div *ngIf="errorMessage" class="error">
-    {{ errorMessage }}
-  </div>
+  }
 
   <div class="controls">
-    <button
-      type="button"
-      class="btn primary"
-      *ngIf="!isCameraActive && !hasCaptured"
-      (click)="startCamera()"
-    >
-      Start camera
-    </button>
+    @if (!isCameraActive && !hasCaptured) {
+      <button
+        type="button"
+        class="btn primary"
+        (click)="startCamera()"
+      >
+        Start camera
+      </button>
+    }
 
-    <button
-      type="button"
-      class="btn primary"
-      *ngIf="isCameraActive && !hasCaptured"
-      (click)="capturePhoto()"
-    >
-      Capture
-    </button>
+    @if (isCameraActive && !hasCaptured) {
+      <button
+        type="button"
+        class="btn primary"
+        (click)="capturePhoto()"
+      >
+        Capture
+      </button>
+    }
 
-    <button
-      type="button"
-      class="btn secondary"
-      *ngIf="isCameraActive"
-      (click)="stopCamera()"
-    >
-      Stop camera
-    </button>
+    @if (isCameraActive) {
+      <button
+        type="button"
+        class="btn secondary"
+        (click)="stopCamera()"
+      >
+        Stop camera
+      </button>
+    }
 
-    <button
-      type="button"
-      class="btn secondary"
-      *ngIf="hasCaptured"
-      (click)="retake()"
-    >
-      Retake
-    </button>
+    @if (hasCaptured) {
+      <button
+        type="button"
+        class="btn secondary"
+        (click)="retake()"
+      >
+        Retake
+      </button>
+    }
 
-    <button
-      type="button"
-      class="btn success"
-      *ngIf="hasCaptured"
-      (click)="usePhoto()"
-    >
-      Use this photo
-    </button>
+    @if (hasCaptured) {
+      <button
+        type="button"
+        class="btn success"
+        (click)="usePhoto()"
+      >
+        Use this photo
+      </button>
+    }
   </div>
 </div>
