@@ -99,11 +99,25 @@
               @for (item of clothingItems(); track item.id) {
                 <div class="item-card">
                   <div class="item-image">
-                    <span class="item-icon">{{ getItemTypeIcon(item.type) }}</span>
+                    @if (item.imageUrl && !item.imageUrl.includes('placeholder')) {
+                      <img [src]="item.imageUrl" [alt]="item.name" class="item-img" />
+                    } @else {
+                      <span class="item-icon">{{ getItemTypeIcon(item.type) }}</span>
+                    }
                   </div>
                   <div class="item-info">
                     <span class="item-name">{{ item.name }}</span>
                     <span class="item-category">{{ item.category }}</span>
+                    @if (item.tags.length > 0) {
+                      <div class="item-tags">
+                        @for (tag of item.tags.slice(0, 3); track tag) {
+                          <span class="mini-tag">{{ tag }}</span>
+                        }
+                        @if (item.tags.length > 3) {
+                          <span class="mini-tag more-tags">+{{ item.tags.length - 3 }}</span>
+                        }
+                      </div>
+                    }
                   </div>
                 </div>
               }

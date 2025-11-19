@@ -431,6 +431,47 @@ app.post('/api/wardrobe/items/tag', upload.single('image'), async (req, res) => 
   }
 });
 
+// List wardrobe items from database with S3 URLs
+app.get('/api/wardrobe/items', async (req, res) => {
+  try {
+    // Try wardrobe table first, fall back to wardrobe_items
+    let result;
+    try {
+      result = await db.query(
+        `SELECT id, s3_key, tags, notes, created_at FROM wardrobe ORDER BY created_at DESC`
+      );
+    } catch (err) {
+      // Fallback to wardrobe_items table
+      result = await db.query(
+        `SELECT id, s3_key, tags, notes, created_at FROM wardrobe_items ORDER BY created_at DESC`
+      );
+    }
+
+    // Generate signed URLs for each item
+    const items = await Promise.all(result.rows.map(async (row) => {
+      const command = new GetObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: row.s3_key
+      });
+      const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+
+      return {
+        id: row.id,
+        s3Key: row.s3_key,
+        imageUrl: signedUrl,
+        tags: row.tags || {},
+        notes: row.notes,
+        createdAt: row.created_at
+      };
+    }));
+
+    res.json({ items });
+  } catch (error) {
+    console.error('List wardrobe items error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Recommend outfits for upcoming days using persona + wardrobe tags + weather
 app.post('/api/stylist/recommend', async (req, res) => {
   try {

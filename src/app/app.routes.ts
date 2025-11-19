@@ -18,11 +18,6 @@ export const routes: Routes = [
     loadComponent: () => import('./components/catalog/catalog.component').then(m => m.CatalogComponent)
   },
   {
-    path: 'mixer',
-    loadComponent: () => import('./components/placeholder/placeholder.component').then(m => m.PlaceholderComponent),
-    data: { title: 'Outfit Mixer' }
-  },
-  {
     path: 'outfits',
     loadComponent: () => import('./components/placeholder/placeholder.component').then(m => m.PlaceholderComponent),
     data: { title: 'Outfit Catalogue' }
