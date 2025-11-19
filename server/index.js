@@ -692,6 +692,31 @@ app.post('/api/stylist/daily', async (req, res) => {
   }
 });
 
+// Weekly planner outfits endpoint
+app.post('/api/stylist/weekly', async (req, res) => {
+  try {
+    const { startDate, days, user, rules } = req.body || {};
+
+    let dayEntries = [];
+    if (Array.isArray(days) && days.length) {
+      dayEntries = days.map(normalizePlannerDayEntry);
+    } else {
+      const start = startDate ? new Date(startDate) : new Date();
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(start);
+        date.setDate(start.getDate() + i);
+        dayEntries.push(normalizePlannerDayEntry({ date }));
+      }
+    }
+
+    const plan = await planWeeklyOutfits(dayEntries, user || {}, rules || {});
+    res.json(plan);
+  } catch (error) {
+    console.error('Weekly stylist error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Save or update persona profile
 app.post('/api/personas', async (req, res) => {
   try {
