@@ -588,90 +588,93 @@ app.post('/api/stylist/recommend', async (req, res) => {
       return res.status(400).json({ message: 'days[] is required' });
     }
 
-    // Load wardrobe items (all for now; could be filtered by seasonality in future)
-    const wardrobeRows = await db.query('SELECT id, tags FROM wardrobe_items');
-    const wardrobe = wardrobeRows.rows || [];
+    const { results, raw } = await generateStylistRecommendations(user || {}, days, rules || {});
+    res.json({ days: results, raw });
+  } catch (error) {
+    console.error('Stylist recommend error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
 
-    // Load existing outfits to reuse/dedupe
-    const existingOutfitsRows = await db.query('SELECT id, item_ids FROM outfits');
-    const existingOutfits = existingOutfitsRows.rows || [];
-    const existingMap = new Map(
-      existingOutfits.map((o) => [normalizeItemIds(o.item_ids), o.id])
-    );
-
-    const userContent = {
-      user: user || {},
-      days,
-      wardrobe: wardrobe.map((w) => ({ id: w.id, tags: w.tags })),
-      existing_outfits: existingOutfits.map((o) => ({ id: o.id, item_ids: o.item_ids })),
-      rules: rules || {}
+// Daily outfit endpoint (saved or newly generated)
+app.post('/api/stylist/daily', async (req, res) => {
+  try {
+    const strategy = (req.body?.strategy || 'existing').toLowerCase();
+    const tags = Array.isArray(req.body?.tags) ? req.body.tags : [];
+    const user = req.body?.user || {};
+    const rules = req.body?.rules || {};
+    const weather = req.body?.weather || null;
+    const dayPayload = req.body?.day || {
+      date: new Date().toISOString().slice(0, 10),
+      weather,
+      event: req.body?.event || null
     };
 
-    const completion = await openai.chat.completions.create({
-      model: STYLIST_MODEL,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: OUTFIT_SYSTEM_PROMPT },
-        { role: 'user', content: JSON.stringify(userContent) }
-      ]
-    });
+    const outfits = await getDetailedOutfits();
 
-    const message = completion.choices?.[0]?.message?.content;
-    if (!message) {
-      return res.status(502).json({ message: 'No response from stylist model' });
-    }
+    if (strategy !== 'new' && outfits.length > 0) {
+      const mainIndex = Math.floor(Math.random() * outfits.length);
+      const main = outfits[mainIndex];
+      const alternatives = outfits.filter((_, idx) => idx !== mainIndex).slice(0, 2);
 
-    let parsed;
-    try {
-      parsed = JSON.parse(message);
-    } catch (err) {
-      console.error('Failed to parse stylist JSON', err);
-      return res.status(502).json({ message: 'Stylist response not valid JSON' });
-    }
+      const formattedMain = formatOutfitForDaily(main, 'Pulled from your saved outfits.');
+      const formattedAlternatives = alternatives
+        .map((outfit) => formatOutfitForDaily(outfit, 'Another look from your saved catalog.'))
+        .filter(Boolean);
 
-    const outDays = Array.isArray(parsed?.days) ? parsed.days : [];
-
-    // Save any new outfits and attach outfitId reference
-    const results = [];
-    for (const day of outDays) {
-      const outfitItems = Array.isArray(day?.outfit) ? day.outfit : [];
-      const normalizedKey = normalizeItemIds(outfitItems.map((i) => i.item_id));
-
-      let outfitId = null;
-      if (day.use_existing_outfit_id && existingMap.has(normalizedKey)) {
-        outfitId = existingMap.get(normalizedKey);
-      } else if (existingMap.has(normalizedKey)) {
-        outfitId = existingMap.get(normalizedKey);
-      } else if (outfitItems.length > 0) {
-        outfitId = uuidv4();
-        await db.query(
-          `INSERT INTO outfits (id, item_ids, tags, notes, name)
-           VALUES ($1, $2, $3, $4, $5)`,
-          [
-            outfitId,
-            outfitItems.map((i) => i.item_id),
-            day.tags || null,
-            day.notes || null,
-            day.name || null
-          ]
-        );
-        existingMap.set(normalizedKey, outfitId);
+      if (!formattedMain) {
+        return res.status(500).json({ message: 'Saved outfit could not be formatted' });
       }
 
-      results.push({
-        date: day.date,
-        outfitId,
-        outfit: outfitItems,
-        notes: day.notes || null
+      return res.json({
+        source: 'existing',
+        weather,
+        mainOutfit: formattedMain,
+        alternatives: formattedAlternatives
       });
     }
 
+    const { results } = await generateStylistRecommendations(user, [dayPayload], {
+      ...rules,
+      tags
+    });
+
+    if (!results.length) {
+      return res.status(502).json({ message: 'Unable to generate outfit right now' });
+    }
+
+    const generated = results[0];
+    if (!generated.outfitId) {
+      return res.status(502).json({ message: 'No outfit ID generated' });
+    }
+    const generatedOutfitList = await getDetailedOutfits([generated.outfitId]);
+    const generatedOutfit = generatedOutfitList[0];
+
+    const remainingAlternatives = (await getDetailedOutfits()).filter(
+      (o) => o.id !== generated.outfitId
+    );
+
+    const formattedMain = formatOutfitForDaily(
+      generatedOutfit,
+      generated.notes || 'AI stylist created this look for today.'
+    );
+    if (!formattedMain) {
+      return res.status(502).json({ message: 'Unable to resolve generated outfit' });
+    }
+
+    const formattedAlternatives = remainingAlternatives
+      .slice(0, 2)
+      .map((outfit) => formatOutfitForDaily(outfit, 'Previously saved option.'))
+      .filter(Boolean);
+
     res.json({
-      days: results,
-      raw: completion
+      source: 'new',
+      weather,
+      mainOutfit: formattedMain,
+      alternatives: formattedAlternatives
     });
   } catch (error) {
-    console.error('Stylist recommend error:', error);
+    console.error('Daily stylist error:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -759,6 +762,144 @@ app.listen(PORT, () => {
   console.log(`S3 Bucket: ${BUCKET_NAME}`);
   console.log(`AWS Region: ${process.env.AWS_REGION || 'ap-southeast-1'}`);
 });
+
+async function generateStylistRecommendations(user = {}, days = [], rules = {}) {
+  const wardrobe = await loadWardrobeForStylist();
+
+  const existingOutfitsRows = await db.query('SELECT id, item_ids FROM outfits');
+  const existingOutfits = existingOutfitsRows.rows || [];
+  const existingMap = new Map(
+    existingOutfits.map((o) => [normalizeItemIds(o.item_ids), o.id])
+  );
+
+  const userContent = {
+    user,
+    days,
+    wardrobe: wardrobe.map((w) => ({ id: w.id, tags: w.tags })),
+    existing_outfits: existingOutfits.map((o) => ({ id: o.id, item_ids: o.item_ids })),
+    rules
+  };
+
+  const completion = await openai.chat.completions.create({
+    model: STYLIST_MODEL,
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: OUTFIT_SYSTEM_PROMPT },
+      { role: 'user', content: JSON.stringify(userContent) }
+    ]
+  });
+
+  const message = completion.choices?.[0]?.message?.content;
+  if (!message) {
+    throw new Error('No response from stylist model');
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(message);
+  } catch (err) {
+    console.error('Failed to parse stylist JSON', err);
+    throw new Error('Stylist response not valid JSON');
+  }
+
+  const outDays = Array.isArray(parsed?.days) ? parsed.days : [];
+  const results = [];
+
+  for (const day of outDays) {
+    const outfitItems = Array.isArray(day?.outfit) ? day.outfit : [];
+    const normalizedKey = normalizeItemIds(outfitItems.map((i) => i.item_id));
+
+    let outfitId = null;
+    if (day.use_existing_outfit_id && existingMap.has(normalizedKey)) {
+      outfitId = existingMap.get(normalizedKey);
+    } else if (existingMap.has(normalizedKey)) {
+      outfitId = existingMap.get(normalizedKey);
+    } else if (outfitItems.length > 0) {
+      outfitId = uuidv4();
+      await db.query(
+        `INSERT INTO outfits (id, item_ids, tags, notes, name)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          outfitId,
+          outfitItems.map((i) => i.item_id),
+          day.tags || null,
+          day.notes || null,
+          day.name || null
+        ]
+      );
+      existingMap.set(normalizedKey, outfitId);
+    }
+
+    results.push({
+      date: day.date,
+      outfitId,
+      outfit: outfitItems,
+      notes: day.notes || null
+    });
+  }
+
+  return { results, raw: completion };
+}
+
+async function loadWardrobeForStylist() {
+  try {
+    const result = await db.query('SELECT id, tags FROM wardrobe');
+    return result.rows || [];
+  } catch {
+    const fallback = await db.query('SELECT id, tags FROM wardrobe_items');
+    return fallback.rows || [];
+  }
+}
+
+async function getDetailedOutfits(outfitIds = []) {
+  let query = `SELECT id, name, item_ids, tags, notes, created_at FROM outfits`;
+  let params = [];
+
+  if (outfitIds && outfitIds.length > 0) {
+    query += ` WHERE id = ANY($1::uuid[])`;
+    params = [outfitIds];
+  }
+
+  query += ` ORDER BY created_at DESC`;
+
+  const result = params.length > 0 ? await db.query(query, params) : await db.query(query);
+  if (!result.rows.length) {
+    return [];
+  }
+
+  const allItemIds = [
+    ...new Set(result.rows.flatMap((row) => row.item_ids || []).filter(Boolean))
+  ];
+  const itemMap = await fetchWardrobeItemsForOutfits(allItemIds);
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    name: row.name || 'Saved Outfit',
+    tags: normalizeOutfitTags(row.tags),
+    notes: row.notes || null,
+    createdAt: row.created_at,
+    items: (row.item_ids || []).map((itemId) => itemMap.get(itemId)).filter(Boolean)
+  }));
+}
+
+function formatOutfitForDaily(outfit, fallbackReason = '') {
+  if (!outfit) {
+    return null;
+  }
+
+  return {
+    id: outfit.id,
+    name: outfit.name,
+    reason: outfit.notes || fallbackReason || 'Saved outfit from your catalog.',
+    items: (outfit.items || []).map((item) => ({
+      id: item.id,
+      name: item.name,
+      type: item.type,
+      imageUrl: item.imageUrl,
+      color: Array.isArray(item.colors) ? item.colors[0] : null
+    }))
+  };
+}
 
 async function fetchWardrobeItemsForOutfits(ids = []) {
   const map = new Map();

@@ -17,6 +17,7 @@ export class DailyOutfitComponent implements OnInit {
   protected expandedAlternative = signal<string | null>(null);
   protected wearingOutfit = signal(false);
   protected appliedTags = signal<string[]>([]);
+  protected lastStrategy = signal<'existing' | 'new'>('existing');
 
   constructor(
     private dailyOutfitService: DailyOutfitService,
@@ -41,12 +42,13 @@ export class DailyOutfitComponent implements OnInit {
     });
   }
 
-  loadDailyOutfit(): void {
+  loadDailyOutfit(strategy: 'existing' | 'new' = 'existing'): void {
     this.loading.set(true);
     this.error.set(null);
     this.appliedTags.set([]);
+    this.lastStrategy.set(strategy);
 
-    this.dailyOutfitService.getDailyOutfit().subscribe({
+    this.dailyOutfitService.getDailyOutfit(strategy).subscribe({
       next: (response) => {
         this.data.set(response);
         this.loading.set(false);
@@ -62,6 +64,8 @@ export class DailyOutfitComponent implements OnInit {
   loadOutfitWithPreferences(tags: string[]): void {
     this.loading.set(true);
     this.error.set(null);
+    this.appliedTags.set(tags);
+    this.lastStrategy.set('new');
 
     this.dailyOutfitService.getOutfitByPreferences(tags).subscribe({
       next: (response) => {
@@ -91,6 +95,19 @@ export class DailyOutfitComponent implements OnInit {
 
   openPreferences(): void {
     this.router.navigate(['/daily-outfit/preferences']);
+  }
+
+  refreshSaved(): void {
+    this.loadDailyOutfit('existing');
+  }
+
+  refreshGenerated(): void {
+    const tags = this.appliedTags();
+    if (tags.length > 0) {
+      this.loadOutfitWithPreferences(tags);
+    } else {
+      this.loadDailyOutfit('new');
+    }
   }
 
   wearOutfit(outfit: OutfitRecommendation): void {
@@ -134,6 +151,14 @@ export class DailyOutfitComponent implements OnInit {
 
       this.expandedAlternative.set(null);
     }
+  }
+
+  getSourceLabel(): string | null {
+    const source = this.data()?.source;
+    if (!source) {
+      return null;
+    }
+    return source === 'existing' ? 'From your saved outfits' : 'Fresh AI-generated look';
   }
 
   goBack(): void {
