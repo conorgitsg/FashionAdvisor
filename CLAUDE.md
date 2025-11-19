@@ -36,10 +36,10 @@ AWS_SECRET_ACCESS_KEY=your-secret-key
 AWS_REGION=ap-southeast-1           # Optional, defaults to ap-southeast-1
 S3_BUCKET_NAME=fashion-advisor      # Optional, defaults to fashion-advisor
 
-# PostgreSQL Database
+# PostgreSQL Database (AWS RDS)
 DB_HOST=your-rds-endpoint.amazonaws.com
 DB_PORT=5432                        # Optional, defaults to 5432
-DB_NAME=your-database-name
+DB_NAME=postgres                    # Default RDS database
 DB_USER=your-username
 DB_PASSWORD=your-password
 DB_SSL=true                         # Set to true for AWS RDS
@@ -143,6 +143,14 @@ const result = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
 { path: 's3-test', loadComponent: () => import('./components/s3-test/s3-test.component') }
 ```
 
+### AWS RDS Setup Requirements
+
+For the PostgreSQL database connection to work:
+1. **Public accessibility** = Yes (RDS → Modify → Connectivity)
+2. **Security group** inbound rule for port 5432 from your IP
+3. **Route table** for RDS subnets must have route to internet gateway (0.0.0.0/0 → igw-xxx)
+4. All subnets in the DB subnet group need the internet gateway route
+
 ### Current State
 
-The app has S3 connectivity implemented with a test component at `/s3-test`. The root template displays Angular's default welcome screen.
+The app has S3 connectivity implemented with a test component at `/s3-test`. PostgreSQL database service is configured but requires AWS RDS network setup. The root template displays Angular's default welcome screen.
