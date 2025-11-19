@@ -7,8 +7,7 @@ export const routes: Routes = [
   },
   {
     path: 'onboarding',
-    loadComponent: () => import('./components/placeholder/placeholder.component').then(m => m.PlaceholderComponent),
-    data: { title: 'Style Profile Onboarding' }
+    loadComponent: () => import('./components/onboarding/onboarding.component').then(m => m.OnboardingComponent)
   },
   {
     path: 'inventory',
