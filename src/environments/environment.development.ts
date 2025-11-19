@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3000/api',
+  apiUrl: 'https://fashionadvisorhackathon.onrender.com/api',
   s3: {
     region: 'ap-southeast-1',
     bucketName: 'fashion-advisor',

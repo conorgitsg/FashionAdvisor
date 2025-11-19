@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**App Name**: Wardrobe Genie
+
 ## Build and Development Commands
 
 ### Frontend (Angular)
@@ -78,7 +80,7 @@ PORT=3000                           # Optional, defaults to 3000
 
 **Signal-Based State**: Use Angular Signals for reactive state:
 ```typescript
-protected readonly title = signal('FashionAdvisor');
+protected readonly title = signal('Wardrobe Genie');
 ```
 
 **Zone.js Event Coalescing**: Enabled in `app.config.ts` for better performance.
@@ -128,6 +130,7 @@ src/app/
     outfit-preferences/   # Tag-based outfit preference input
     catalog/              # Wardrobe catalog with filtering
     weekly-planner/       # Weekly planner with events and outfit scheduling
+    packing-list/         # Packing list for days with multiple dress codes
     login/                # Email login page
   camera/                 # Camera capture component
   upload/                 # Upload page with camera/file modes
@@ -160,6 +163,12 @@ server/
 - `GET /api/images/:key` - Get image metadata
 - `DELETE /api/images/:key` - Delete image
 - `GET /api/db/health` - Database health check
+- `POST /api/wardrobe/items/tag` - Upload and AI-tag wardrobe item
+- `GET /api/wardrobe/items` - List wardrobe items with signed S3 URLs
+- `DELETE /api/wardrobe/items/:id` - Delete wardrobe item from S3 and database
+- `POST /api/stylist/recommend` - Get AI outfit recommendations
+- `POST /api/personas` - Save user persona profile
+- `PUT /api/personas/:id` - Update user persona profile
 
 ### Database Service
 
@@ -186,6 +195,7 @@ const result = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
 { path: 'outfits', loadComponent: () => import('./components/placeholder/placeholder.component') }
 { path: 'stylist', loadComponent: () => import('./components/placeholder/placeholder.component') }
 { path: 'planner', loadComponent: () => import('./components/weekly-planner/weekly-planner.component') }
+{ path: 'packing-list', loadComponent: () => import('./components/packing-list/packing-list.component') }
 { path: 's3-test', loadComponent: () => import('./components/s3-test/s3-test.component') }
 { path: 'camera', loadComponent: () => import('./camera/camera-capture.component') }
 { path: 'camera-test', loadComponent: () => import('./components/camera-test/camera-test.component') }
@@ -210,16 +220,17 @@ The app has S3 connectivity implemented with a test component at `/s3-test`. Pos
 - `/` - Full landing page with hero, features, footer
 - `/onboarding` - 8-step onboarding wizard with profile creation
 - `/login` - Email login page
-- `/inventory` - Wardrobe catalog with filtering and sorting
+- `/inventory` - Wardrobe catalog with filtering, sorting, and delete functionality (default: Clothing tab)
 - `/outfits` - Outfit Catalogue (placeholder)
 - `/stylist` - AI Stylist (placeholder)
 - `/planner` - Weekly planner with event and outfit scheduling
+- `/packing-list` - Packing list for days with 2+ different dress codes
 - `/about`, `/privacy`, `/support` - Footer links (placeholders)
 - `/s3-test` - S3 upload testing
 - `/camera` - Camera capture component (standalone)
 - `/camera-test` - Camera capture with S3 upload and gallery
 - `/upload` - Upload page with camera/file modes and AI tagging pipeline
-- `/daily-outfit` - Daily smart outfit recommendation with weather integration
+- `/daily-outfit` - Daily smart outfit recommendation with real-time weather (Open-Meteo API)
 - `/daily-outfit/preferences` - Tag-based preference input for personalized outfits
 
 ### Landing Page Structure
@@ -227,7 +238,7 @@ The app has S3 connectivity implemented with a test component at `/s3-test`. Pos
 The landing page (`/`) includes:
 1. **Hero Section** - Split layout with CTA "Start Your Style Profile" linking to `/onboarding`
 2. **How It Works** - 3-column grid (Capture, Auto-Calibration, Style DNA)
-3. **Feature Highlights** - Digital Wardrobe (catalog), Outfit Mixer, Weather-Aware Planning, and Daily Smart Outfit previews
+3. **Feature Highlights** - Digital Wardrobe (catalog), Weekly Planner, and Daily Smart Outfit previews
 4. **Footer** - Navigation links and social icons (Instagram, TikTok)
 
 ### Placeholder Component
@@ -392,8 +403,10 @@ The catalog feature allows users to browse and filter their wardrobe items and o
 - Reset and Show Results actions
 
 **CatalogService** (`src/app/services/catalog.service.ts`):
-- `getClothingItems(filters, sort)` - Get filtered/sorted clothing
+- `getWardrobeItems()` - Fetch wardrobe items from backend API
+- `getClothingItems(filters, sort)` - Get filtered/sorted clothing from S3/database
 - `getOutfits(filters, sort)` - Get filtered/sorted outfits
+- `deleteItem(itemId)` - Delete wardrobe item
 
 **Data Structures:**
 ```typescript
@@ -513,3 +526,38 @@ interface PlannerWeek {
   days: PlannerDay[];
 }
 ```
+
+### Packing List Feature
+
+The packing list (`/packing-list`) helps users prepare for days with multiple events requiring different dress codes.
+
+**Features:**
+- Automatically generated from weekly planner data
+- Shows only days with 2+ events having different dress codes
+- Checklist with checkable items
+- Progress tracking (items packed / total)
+- Empty state when no packing is needed
+
+**Component Methods:**
+- `loadPackingList()` - Generate packing list from planner data
+- `togglePacked(item)` - Mark item as packed/unpacked
+- `getPackedCount(items)` - Count packed items for a day
+- `getTotalCount()` / `getTotalPackedCount()` - Overall progress
+
+### Daily Outfit Weather Integration
+
+The daily outfit service now integrates with Open-Meteo API for real-time weather data.
+
+**Weather API:**
+- Uses Open-Meteo (free, no API key required)
+- Default location: Singapore (1.3521, 103.8198)
+- Fetches temperature, feels-like, and weather condition
+
+**Weather-Based Recommendations:**
+- Hot weather (28°C+): Lightweight, breathable fabrics
+- Rainy weather (50%+ rain chance): Water-resistant options
+- Moderate weather: Versatile, polished looks
+
+**DailyOutfitService Methods:**
+- `getWeather()` - Fetch current weather from Open-Meteo
+- `generateOutfitForWeather(weather, tags?)` - Create weather-appropriate recommendations
