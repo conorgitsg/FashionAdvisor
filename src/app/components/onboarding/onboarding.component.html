@@ -25,7 +25,7 @@
         <h1>Plan smarter. Dress better.</h1>
         <p>Your AI-powered wardrobe assistant that learns your style and helps you create perfect outfits every day.</p>
         <button class="btn-cta" (click)="nextStep()">Get Started</button>
-        <button class="btn-secondary" (click)="router.navigate(['/'])">Log In</button>
+        <button class="btn-secondary" (click)="router.navigate(['/login'])">Log In</button>
       </div>
     </div>
   }
@@ -193,7 +193,9 @@
               [class.selected]="isSelected(profile.styles, style.id)"
               (click)="toggleArrayItem(profile.styles, style.id)"
             >
-              <div class="style-preview"></div>
+              <div class="style-preview">
+                <img [src]="style.image" [alt]="style.label" />
+              </div>
               <span>{{ style.label }}</span>
             </button>
           }

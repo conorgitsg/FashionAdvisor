@@ -66,8 +66,7 @@ export class OnboardingComponent {
   genderOptions = [
     { label: 'Masculine', icon: 'M' },
     { label: 'Feminine', icon: 'F' },
-    { label: 'Neutral', icon: 'N' },
-    { label: 'Custom', icon: '?' }
+    { label: 'Neutral', icon: 'N' }
   ];
 
   bodyShapes = [
@@ -79,14 +78,14 @@ export class OnboardingComponent {
   ];
 
   styleOptions = [
-    { id: 'minimalist', label: 'Minimalist', image: '' },
-    { id: 'casual', label: 'Casual', image: '' },
-    { id: 'streetwear', label: 'Streetwear', image: '' },
-    { id: 'chic', label: 'Chic', image: '' },
-    { id: 'elegant', label: 'Elegant', image: '' },
-    { id: 'sporty', label: 'Sporty', image: '' },
-    { id: 'preppy', label: 'Preppy', image: '' },
-    { id: 'bohemian', label: 'Bohemian', image: '' }
+    { id: 'minimalist', label: 'Minimalist', image: 'https://cdn-icons-png.flaticon.com/512/3523/3523887.png' },
+    { id: 'casual', label: 'Casual', image: 'https://cdn-icons-png.flaticon.com/512/2331/2331716.png' },
+    { id: 'streetwear', label: 'Streetwear', image: 'https://cdn-icons-png.flaticon.com/512/2503/2503380.png' },
+    { id: 'chic', label: 'Chic', image: 'https://cdn-icons-png.flaticon.com/512/3531/3531849.png' },
+    { id: 'elegant', label: 'Elegant', image: 'https://cdn-icons-png.flaticon.com/512/3531/3531856.png' },
+    { id: 'sporty', label: 'Sporty', image: 'https://cdn-icons-png.flaticon.com/512/2964/2964514.png' },
+    { id: 'preppy', label: 'Preppy', image: 'https://cdn-icons-png.flaticon.com/512/3531/3531803.png' },
+    { id: 'bohemian', label: 'Bohemian', image: 'https://cdn-icons-png.flaticon.com/512/3531/3531963.png' }
   ];
 
   colorOptions = [

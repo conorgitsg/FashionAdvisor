@@ -128,6 +128,7 @@ src/app/
     outfit-preferences/   # Tag-based outfit preference input
     catalog/              # Wardrobe catalog with filtering
     weekly-planner/       # Weekly planner with events and outfit scheduling
+    login/                # Email login page
   camera/                 # Camera capture component
   upload/                 # Upload page with camera/file modes
   services/
@@ -179,7 +180,8 @@ const result = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
 ```typescript
 // src/app/app.routes.ts - Main application routes
 { path: '', loadComponent: () => import('./components/landing-page/landing-page.component') }
-{ path: 'onboarding', loadComponent: () => import('./components/placeholder/placeholder.component') }
+{ path: 'onboarding', loadComponent: () => import('./components/onboarding/onboarding.component') }
+{ path: 'login', loadComponent: () => import('./components/login/login.component') }
 { path: 'inventory', loadComponent: () => import('./components/catalog/catalog.component') }
 { path: 'mixer', loadComponent: () => import('./components/placeholder/placeholder.component') }
 { path: 'outfits', loadComponent: () => import('./components/placeholder/placeholder.component') }
@@ -216,7 +218,7 @@ The app has S3 connectivity implemented with a test component at `/s3-test`. Pos
 - `/about`, `/privacy`, `/support` - Footer links (placeholders)
 - `/s3-test` - S3 upload testing
 - `/camera` - Camera capture component (standalone)
-- `/camera-test` - Camera functionality test page with gallery
+- `/camera-test` - Camera capture with S3 upload and gallery
 - `/upload` - Upload page with camera/file modes and AI tagging pipeline
 - `/daily-outfit` - Daily smart outfit recommendation with weather integration
 - `/daily-outfit/preferences` - Tag-based preference input for personalized outfits
@@ -272,6 +274,32 @@ interface UserProfile {
 ```
 
 Profile is saved to localStorage on completion and user is redirected to `/inventory`.
+
+### Camera Test Feature
+
+The camera test page (`/camera-test`) provides full camera-to-S3 integration for capturing and storing wardrobe photos.
+
+**Features:**
+- Camera capture using device camera (prefers back camera)
+- Automatic upload to S3 on photo capture
+- Gallery displaying all images from S3
+- Individual and bulk delete functionality
+- Upload progress indicator with spinner
+- Error handling for failed uploads
+- Refresh button to reload images from S3
+- Stats showing total photos and last upload time
+
+**Component Methods:**
+- `loadImages()` - Fetch all images from S3
+- `onPhotoCaptured(blob)` - Upload captured photo to S3
+- `deleteImage(image)` - Delete single image from S3
+- `clearAllImages()` - Delete all images from S3
+- `refreshImages()` - Reload gallery from S3
+
+**Integration:**
+- Uses `S3ImageService` for all S3 operations
+- Images displayed using S3 URLs from backend
+- Filenames generated as `camera-{timestamp}.jpg`
 
 ### Daily Outfit Feature
 
