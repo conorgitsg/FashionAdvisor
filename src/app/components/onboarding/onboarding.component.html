@@ -21,7 +21,7 @@
         </div>
       </div>
       <div class="welcome-content">
-        <div class="logo">Wardrobe Genie</div>
+        <div class="logo">FashionAdvisor</div>
         <h1>Plan smarter. Dress better.</h1>
         <p>Your AI-powered wardrobe assistant that learns your style and helps you create perfect outfits every day.</p>
         <button class="btn-cta" (click)="nextStep()">Get Started</button>
@@ -29,22 +29,22 @@
         @if (savedProfile) {
           <div class="saved-profile-banner">
             <div class="saved-profile-body">
-              <strong>Use your saved style profile{{ savedProfile?.name ? ' (' + savedProfile.name + ')' : '' }}?</strong>
+              <strong>Use your saved style profile{{ savedProfile.name ? ' (' + savedProfile.name + ')' : '' }}?</strong>
               <p class="saved-profile-text">Skip onboarding and keep your previous persona settings.</p>
               <div class="saved-chips">
-                @if (savedProfile?.ageRange) {
-                  <span class="saved-chip">Age: {{ savedProfile?.ageRange }}</span>
+                @if (savedProfile.ageRange) {
+                  <span class="saved-chip">Age: {{ savedProfile.ageRange }}</span>
                 }
-                @if (savedProfile?.genderPresentation) {
-                  <span class="saved-chip">Presentation: {{ savedProfile?.genderPresentation }}</span>
+                @if (savedProfile.genderPresentation) {
+                  <span class="saved-chip">Presentation: {{ savedProfile.genderPresentation }}</span>
                 }
-                @if (savedProfile?.styles?.length) {
+                @if (savedProfile.styles?.length) {
                   <span class="saved-chip">
-                    Styles: {{ savedProfile!.styles!.slice(0, 2).join(', ') }}{{ savedProfile!.styles!.length > 2 ? ' +' + (savedProfile!.styles!.length - 2) : '' }}
+                    Styles: {{ savedProfile.styles.slice(0, 2).join(', ') }}{{ savedProfile.styles.length > 2 ? ' +' + (savedProfile.styles.length - 2) : '' }}
                   </span>
                 }
-                @if (savedProfile?.location) {
-                  <span class="saved-chip">Location: {{ savedProfile?.location }}</span>
+                @if (savedProfile.location) {
+                  <span class="saved-chip">Location: {{ savedProfile.location }}</span>
                 }
               </div>
             </div>
