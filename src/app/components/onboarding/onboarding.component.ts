@@ -16,6 +16,7 @@ export class OnboardingComponent {
   totalSteps = 8;
   isSaving = signal(false);
   saveError = signal<string | null>(null);
+  savedProfile: PersonaProfile | null = null;
 
   profile: PersonaProfile = {
     name: '',
@@ -104,7 +105,9 @@ export class OnboardingComponent {
     { id: 'reduce-fatigue', label: 'Reduce decision fatigue', icon: 'brain' }
   ];
 
-  constructor(public router: Router, private personaService: PersonaService) {}
+  constructor(public router: Router, private personaService: PersonaService) {
+    this.loadSavedProfile();
+  }
 
   getColorHex(colorId: string): string {
     return this.colorOptions.find(c => c.id === colorId)?.hex || '#000000';
@@ -141,6 +144,25 @@ export class OnboardingComponent {
         this.isSaving.set(false);
       }
     });
+  }
+
+  useSavedProfile() {
+    if (!this.savedProfile) return;
+    this.profile = { ...this.savedProfile };
+    localStorage.setItem('userProfile', JSON.stringify(this.profile));
+    this.router.navigate(['/inventory']);
+  }
+
+  private loadSavedProfile() {
+    try {
+      const saved = localStorage.getItem('userProfile');
+      if (saved) {
+        this.savedProfile = JSON.parse(saved) as PersonaProfile;
+      }
+    } catch (err) {
+      console.warn('Could not load saved profile', err);
+      this.savedProfile = null;
+    }
   }
 
   toggleArrayItem(array: string[], item: string) {
