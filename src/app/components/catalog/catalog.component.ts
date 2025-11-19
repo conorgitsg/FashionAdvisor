@@ -263,6 +263,21 @@ export class CatalogComponent implements OnInit {
     }
   }
 
+  deleteOutfit(outfit: Outfit, event: Event): void {
+    event.stopPropagation();
+    if (confirm(`Delete outfit "${outfit.name}"? This action cannot be undone.`)) {
+      this.catalogService.deleteOutfit(outfit.id).subscribe({
+        next: () => {
+          this.outfits.set(this.outfits().filter(o => o.id !== outfit.id));
+        },
+        error: (err) => {
+          console.error('Failed to delete outfit', err);
+          alert('Failed to delete outfit. Please try again.');
+        }
+      });
+    }
+  }
+
   private capitalize(str: string): string {
     return str.charAt(0).toUpperCase() + str.slice(1);
   }

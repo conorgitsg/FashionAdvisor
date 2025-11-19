@@ -507,9 +507,74 @@ app.delete('/api/wardrobe/items/:id', async (req, res) => {
       await db.query('DELETE FROM wardrobe_items WHERE id = $1', [itemId]);
     }
 
+    // Remove the item from any saved outfits and prune empty outfits
+    await db.query(
+      `UPDATE outfits
+       SET item_ids = array_remove(item_ids, $1)
+       WHERE item_ids IS NOT NULL`,
+      [itemId]
+    );
+    await db.query('DELETE FROM outfits WHERE item_ids IS NULL OR array_length(item_ids, 1) = 0');
+
     res.status(204).send();
   } catch (error) {
     console.error('Delete wardrobe item error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// List saved outfits from database with resolved wardrobe items
+app.get('/api/outfits', async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT id, name, item_ids, tags, notes, created_at
+       FROM outfits
+       ORDER BY created_at DESC`
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ outfits: [] });
+    }
+
+    const allItemIds = [
+      ...new Set(result.rows.flatMap(row => row.item_ids || []).filter(Boolean))
+    ];
+    const wardrobeMap = await fetchWardrobeItemsForOutfits(allItemIds);
+
+    const payload = result.rows.map(outfit => {
+      const items = (outfit.item_ids || [])
+        .map((itemId) => wardrobeMap.get(itemId))
+        .filter(Boolean);
+
+      return {
+        id: outfit.id,
+        name: outfit.name || 'Saved Outfit',
+        tags: normalizeOutfitTags(outfit.tags),
+        notes: outfit.notes || null,
+        imageUrl: items[0]?.imageUrl || null,
+        pieceCount: items.length,
+        lastModified: outfit.created_at,
+        items
+      };
+    });
+
+    res.json({ outfits: payload });
+  } catch (error) {
+    console.error('List outfits error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Delete outfit
+app.delete('/api/outfits/:id', async (req, res) => {
+  try {
+    const result = await db.query('DELETE FROM outfits WHERE id = $1', [req.params.id]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Outfit not found' });
+    }
+    res.status(204).send();
+  } catch (error) {
+    console.error('Delete outfit error:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -694,6 +759,80 @@ app.listen(PORT, () => {
   console.log(`S3 Bucket: ${BUCKET_NAME}`);
   console.log(`AWS Region: ${process.env.AWS_REGION || 'ap-southeast-1'}`);
 });
+
+async function fetchWardrobeItemsForOutfits(ids = []) {
+  const map = new Map();
+  if (!ids || ids.length === 0) {
+    return map;
+  }
+
+  const result = await db.query(
+    `SELECT id, s3_key, tags, created_at
+     FROM wardrobe_items
+     WHERE id = ANY($1::uuid[])`,
+    [ids]
+  );
+
+  for (const row of result.rows) {
+    let imageUrl = null;
+    if (row.s3_key) {
+      const command = new GetObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: row.s3_key
+      });
+      imageUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+    }
+
+    const tags = row.tags || {};
+    map.set(row.id, {
+      id: row.id,
+      name: tags.item_name || 'Unnamed Item',
+      type: mapBroadCategoryToType(tags.broad_category),
+      category: tags.sub_category || tags.broad_category || 'Other',
+      tags: Array.isArray(tags.tags) ? tags.tags : [],
+      colors: Array.isArray(tags.colors) ? tags.colors.map((c) => c.toLowerCase()) : [],
+      imageUrl,
+      usageFrequency: 0,
+      dateAdded: row.created_at,
+      season: Array.isArray(tags.seasonality) ? tags.seasonality.map((s) => s.toLowerCase()) : [],
+      style: tags.style_vibe ? [tags.style_vibe.toLowerCase()] : []
+    });
+  }
+
+  return map;
+}
+
+function mapBroadCategoryToType(category = '') {
+  const normalized = category.toLowerCase();
+  const map = {
+    'tops': 'top',
+    'top': 'top',
+    'bottoms': 'bottom',
+    'bottom': 'bottom',
+    'one-piece': 'dress',
+    'dress': 'dress',
+    'outerwear': 'outerwear',
+    'shoes': 'shoes',
+    'accessories': 'accessory',
+    'underwear/sleepwear': 'accessory',
+    'sportswear/athleisure': 'top'
+  };
+  return map[normalized] || 'accessory';
+}
+
+function normalizeOutfitTags(tags) {
+  if (!tags) return [];
+  if (Array.isArray(tags)) {
+    return tags.filter(Boolean);
+  }
+  if (Array.isArray(tags.tags)) {
+    return tags.tags.filter(Boolean);
+  }
+  if (typeof tags === 'string') {
+    return [tags];
+  }
+  return [];
+}
 
 function normalizeItemIds(items) {
   if (!Array.isArray(items)) return '';

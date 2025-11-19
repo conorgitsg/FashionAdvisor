@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, map, catchError } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface WardrobeTags {
   item_name?: string;
@@ -63,11 +64,36 @@ export interface CatalogFilters {
 export type SortOption = 'recent' | 'most-worn' | 'least-worn' | 'alphabetical';
 export type ViewMode = 'clothing' | 'outfits' | 'all';
 
+interface OutfitApiItem {
+  id: string;
+  name: string;
+  type: ClothingItem['type'];
+  category: string;
+  tags: string[];
+  colors: string[];
+  imageUrl: string | null;
+  usageFrequency: number;
+  dateAdded: string;
+  season: string[];
+  style: string[];
+}
+
+interface OutfitApiResponse {
+  id: string;
+  name: string;
+  tags: string[];
+  notes?: string | null;
+  imageUrl?: string | null;
+  pieceCount: number;
+  lastModified: string;
+  items: OutfitApiItem[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class CatalogService {
-  private apiUrl = 'https://fashionadvisorhackathon.onrender.com/api';
+  private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
@@ -88,12 +114,21 @@ export class CatalogService {
   }
 
   getOutfits(filters?: CatalogFilters, sort?: SortOption): Observable<Outfit[]> {
-    // TODO: Replace with actual API call when outfits are implemented
-    return of(this.getMockOutfits(filters, sort));
+    return this.http.get<{ outfits: OutfitApiResponse[] }>(`${this.apiUrl}/outfits`).pipe(
+      map((response) => this.transformOutfits(response.outfits || [], filters, sort)),
+      catchError(err => {
+        console.error('Failed to fetch outfits', err);
+        return of([]);
+      })
+    );
   }
 
   deleteItem(itemId: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/wardrobe/items/${itemId}`);
+  }
+
+  deleteOutfit(outfitId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/outfits/${outfitId}`);
   }
 
   private transformAndFilterItems(wardrobeItems: WardrobeItem[], filters?: CatalogFilters, sort?: SortOption): ClothingItem[] {
@@ -386,79 +421,31 @@ export class CatalogService {
     return items;
   }
 
-  private getMockOutfits(filters?: CatalogFilters, sort?: SortOption): Outfit[] {
-    let outfits: Outfit[] = [
-      {
-        id: 'outfit-1',
-        name: 'Casual Friday',
-        items: [],
-        tags: ['casual', 'workwear'],
-        category: 'Work',
-        imageUrl: '/assets/placeholder-outfit.png',
-        lastModified: new Date('2024-04-01'),
-        pieceCount: 3
-      },
-      {
-        id: 'outfit-2',
-        name: 'Summer Brunch',
-        items: [],
-        tags: ['casual', 'feminine'],
-        category: 'Casual',
-        imageUrl: '/assets/placeholder-outfit.png',
-        lastModified: new Date('2024-03-28'),
-        pieceCount: 2
-      },
-      {
-        id: 'outfit-3',
-        name: 'Date Night',
-        items: [],
-        tags: ['party', 'feminine'],
-        category: 'Evening',
-        imageUrl: '/assets/placeholder-outfit.png',
-        lastModified: new Date('2024-04-05'),
-        pieceCount: 3
-      },
-      {
-        id: 'outfit-4',
-        name: 'Rainy Day Chic',
-        items: [],
-        tags: ['casual', 'travel'],
-        category: 'Weather',
-        imageUrl: '/assets/placeholder-outfit.png',
-        lastModified: new Date('2024-03-15'),
-        pieceCount: 4
-      },
-      {
-        id: 'outfit-5',
-        name: 'Office Meeting',
-        items: [],
-        tags: ['workwear', 'minimalist'],
-        category: 'Work',
-        imageUrl: '/assets/placeholder-outfit.png',
-        lastModified: new Date('2024-04-10'),
-        pieceCount: 3
-      },
-      {
-        id: 'outfit-6',
-        name: 'Weekend Errands',
-        items: [],
-        tags: ['casual', 'athleisure'],
-        category: 'Casual',
-        imageUrl: '/assets/placeholder-outfit.png',
-        lastModified: new Date('2024-04-08'),
-        pieceCount: 2
-      }
-    ];
+  private transformOutfits(outfits: OutfitApiResponse[], filters?: CatalogFilters, sort?: SortOption): Outfit[] {
+    let transformed: Outfit[] = outfits.map((outfit) => ({
+      id: outfit.id,
+      name: outfit.name,
+      tags: outfit.tags || [],
+      category: outfit.notes || undefined,
+      imageUrl: outfit.imageUrl || outfit.items[0]?.imageUrl || '/assets/placeholder-outfit.png',
+      lastModified: new Date(outfit.lastModified),
+      pieceCount: outfit.pieceCount || outfit.items.length,
+      items: outfit.items.map((item) => ({
+        ...item,
+        imageUrl: item.imageUrl || '/assets/placeholder-top.png',
+        dateAdded: new Date(item.dateAdded),
+        usageFrequency: item.usageFrequency || 0
+      }))
+    }));
 
-    // Apply filters
     if (filters) {
       if (filters.styles.length > 0) {
-        outfits = outfits.filter(outfit =>
+        transformed = transformed.filter(outfit =>
           outfit.tags.some(tag => filters.styles.includes(tag))
         );
       }
       if (filters.outfitTypes.length > 0) {
-        outfits = outfits.filter(outfit => {
+        transformed = transformed.filter(outfit => {
           if (filters.outfitTypes.includes('2-piece') && outfit.pieceCount === 2) return true;
           if (filters.outfitTypes.includes('3-piece') && outfit.pieceCount === 3) return true;
           if (filters.outfitTypes.includes('4-piece') && outfit.pieceCount >= 4) return true;
@@ -467,18 +454,18 @@ export class CatalogService {
       }
     }
 
-    // Apply sorting
     if (sort) {
       switch (sort) {
-        case 'recent':
-          outfits.sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime());
-          break;
         case 'alphabetical':
-          outfits.sort((a, b) => a.name.localeCompare(b.name));
+          transformed.sort((a, b) => a.name.localeCompare(b.name));
+          break;
+        case 'recent':
+        default:
+          transformed.sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime());
           break;
       }
     }
 
-    return outfits;
+    return transformed;
   }
 }
