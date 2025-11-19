@@ -1,84 +1,127 @@
 <div class="upload-page">
-  <h2>Add to Wardrobe</h2>
+  <h1 class="title">Add a new wardrobe item</h1>
 
+  <p class="subtitle">
+    Capture or upload a photo of a single clothing item. We'll prepare it for
+    your digital closet.
+  </p>
+
+  <!-- Mode toggle: Camera vs File upload -->
   <div class="mode-toggle">
     <button
-      class="btn"
-      [class.btn-primary]="mode === 'camera'"
-      [class.btn-secondary]="mode !== 'camera'"
-      (click)="switchMode('camera')">
+      type="button"
+      class="mode-btn"
+      [class.mode-btn--active]="mode === 'camera'"
+      (click)="switchMode('camera')"
+    >
       Camera
     </button>
     <button
-      class="btn"
-      [class.btn-primary]="mode === 'file'"
-      [class.btn-secondary]="mode !== 'file'"
-      (click)="switchMode('file')">
-      Upload File
+      type="button"
+      class="mode-btn"
+      [class.mode-btn--active]="mode === 'file'"
+      (click)="switchMode('file')"
+    >
+      Upload from files
     </button>
   </div>
 
+  <!-- CAMERA MODE -->
   @if (mode === 'camera') {
-    <app-camera-capture (photoCaptured)="onPhotoCaptured($event)"></app-camera-capture>
+    <section class="panel">
+      <h2 class="panel-title">Use your camera</h2>
+      <p class="panel-text">
+        Place the item on a plain background, fill the frame, and avoid harsh
+        shadows.
+      </p>
+
+      <app-camera-capture (photoCaptured)="onPhotoCaptured($event)">
+      </app-camera-capture>
+    </section>
   }
 
+  <!-- FILE MODE -->
   @if (mode === 'file') {
-    <div class="upload-area">
-      <div class="upload-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-          <polyline points="17,8 12,3 7,8"></polyline>
-          <line x1="12" y1="3" x2="12" y2="15"></line>
-        </svg>
-      </div>
-      <p>Click to upload or drag and drop</p>
-      <input
-        type="file"
-        accept="image/*"
-        (change)="onFileSelected($event)"
-        class="file-input">
-    </div>
+    <section class="panel">
+      <h2 class="panel-title">Upload a photo</h2>
+      <p class="panel-text">
+        Choose an existing photo from your gallery. Ideally, the item should be
+        centered and clearly visible.
+      </p>
+
+      <label class="file-input-label">
+        <input
+          type="file"
+          accept="image/*"
+          (change)="onFileSelected($event)"
+          class="file-input"
+        />
+        <span>Choose image</span>
+      </label>
+    </section>
   }
 
-  @if (status === 'processing') {
-    <div class="status-message processing">
-      {{ statusMessage }}
-    </div>
-  }
+  <!-- PIPELINE STATUS & PREVIEWS -->
+  @if (rawPreviewUrl || processedPreviewUrl) {
+    <section class="pipeline">
+      <h2 class="panel-title">Processing preview</h2>
 
-  @if (status === 'error') {
-    <div class="status-message error">
-      {{ statusMessage }}
-    </div>
-  }
-
-  @if (status === 'done') {
-    <div class="results">
-      <div class="status-message success">
-        {{ statusMessage }}
-      </div>
-
-      @if (processedPreviewUrl) {
-        <div class="preview">
-          <img [src]="processedPreviewUrl" alt="Processed image">
+      <div class="preview-row">
+        <div class="preview-card">
+          <h3>Original photo</h3>
+          @if (rawPreviewUrl) {
+            <div class="preview-frame">
+              <img [src]="rawPreviewUrl" alt="Original preview" />
+            </div>
+          } @else {
+            <div class="preview-placeholder">No image yet</div>
+          }
         </div>
-      }
 
-      @if (aiResult) {
-        <div class="ai-tags">
-          <h4>AI Analysis</h4>
-          <p><strong>Category:</strong> {{ aiResult.category }}</p>
-          <p><strong>Color:</strong> {{ aiResult.color }}</p>
-          <p><strong>Style:</strong> {{ aiResult.style }}</p>
-          @if (aiResult.tags.length > 0) {
-            <div class="tags">
-              @for (tag of aiResult.tags; track tag) {
-                <span class="tag">{{ tag }}</span>
-              }
+        <div class="preview-card">
+          <h3>After background removal</h3>
+          @if (processedPreviewUrl) {
+            <div class="preview-frame">
+              <img [src]="processedPreviewUrl" alt="Processed preview" />
+            </div>
+          } @else {
+            <div class="preview-placeholder">
+              Waiting for background removal…
             </div>
           }
         </div>
-      }
-    </div>
+      </div>
+    </section>
+  }
+
+  <!-- STATUS MESSAGE -->
+  @if (statusMessage) {
+    <p class="status">
+      {{ statusMessage }}
+    </p>
+  }
+
+  <!-- AI TAGGING RESULT -->
+  @if (aiResult) {
+    <section class="ai-result">
+      <h2 class="panel-title">Detected details (stub)</h2>
+      <ul class="tag-list">
+        <li><strong>Category:</strong> {{ aiResult.category }}</li>
+        <li><strong>Colors:</strong> {{ aiResult.colors.join(', ') }}</li>
+        <li><strong>Seasons:</strong> {{ aiResult.seasons.join(', ') }}</li>
+        <li><strong>Occasions:</strong> {{ aiResult.occasions.join(', ') }}</li>
+        <li><strong>Pattern:</strong> {{ aiResult.pattern }}</li>
+        @if (aiResult.notes) {
+          <li>
+            <strong>Notes:</strong> {{ aiResult.notes }}
+          </li>
+        }
+      </ul>
+
+      <p class="note">
+        These values are placeholders for now. Once the AI integration is ready,
+        this section will show real tags that feed into your Item Catalogue.
+      </p>
+    </section>
   }
 </div>

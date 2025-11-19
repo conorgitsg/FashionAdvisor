@@ -11,5 +11,12 @@ export const routes: Routes = [
       import('./camera/camera-capture.component').then(
         (m) => m.CameraCaptureComponent
       ),
+  },
+  {
+    path: 'upload',
+    loadComponent: () =>
+      import('./upload/upload-page.component').then(
+        (m) => m.UploadPageComponent
+      ),
   }
 ];
