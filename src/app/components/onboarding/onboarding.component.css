@@ -670,6 +670,7 @@
   align-items: center;
   justify-content: space-between;
   text-align: left;
+  flex-wrap: wrap;
 }
 
 .saved-profile-text {
@@ -682,6 +683,23 @@
   display: flex;
   gap: var(--spacing-sm);
   flex-wrap: wrap;
+}
+
+.saved-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+.saved-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-text-primary);
+  font-size: 0.8rem;
 }
 
 .btn-ghost {
