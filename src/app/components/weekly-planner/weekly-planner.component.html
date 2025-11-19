@@ -1,0 +1,194 @@
+<div class="planner-container">
+  <!-- Header -->
+  <div class="planner-header">
+    <h1>Weekly Planner</h1>
+    <div class="week-navigation">
+      <button class="nav-btn" (click)="navigateWeek(-1)">
+        <span>←</span>
+      </button>
+      <span class="week-range">{{ getWeekRange() }}</span>
+      <button class="nav-btn" (click)="navigateWeek(1)">
+        <span>→</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Weekly Grid -->
+  @if (week()) {
+    <div class="week-grid">
+      @for (day of week()!.days; track day.date) {
+        <div class="day-card" [class.today]="isToday(day.date)">
+          <!-- Day Header -->
+          <div class="day-header">
+            <div class="day-info">
+              <span class="day-name">{{ day.dayName }}</span>
+              <span class="day-number">{{ day.dayNumber }}</span>
+            </div>
+            @if (day.weather) {
+              <div class="weather-info">
+                <span class="weather-icon">{{ day.weather.icon }}</span>
+                <span class="temperature">{{ day.weather.temperature }}°</span>
+              </div>
+            }
+          </div>
+
+          <!-- Events Section -->
+          <div class="events-section">
+            @if (day.events.length > 0) {
+              @for (event of day.events; track event.id) {
+                <div class="event-item" (click)="openEditEventModal(day, event)">
+                  <div class="event-time">{{ event.time }}</div>
+                  <div class="event-title">{{ event.title }}</div>
+                  @if (event.dressCode) {
+                    <div class="event-dress-code">{{ event.dressCode }}</div>
+                  }
+                  <button class="delete-event-btn" (click)="deleteEvent(day, event); $event.stopPropagation()">×</button>
+                </div>
+              }
+            } @else {
+              <div class="no-events">No events</div>
+            }
+            <button class="add-event-btn" (click)="openAddEventModal(day)">
+              + Add Event
+            </button>
+          </div>
+
+          <!-- Outfit Section -->
+          <div class="outfit-section">
+            @if (day.outfit) {
+              <div class="outfit-preview" (click)="openOutfitModal(day)">
+                <div class="outfit-label">Today's Outfit</div>
+                <div class="outfit-items">
+                  @for (item of day.outfit.items; track item.id) {
+                    <div class="outfit-item-chip">
+                      {{ item.name }}
+                    </div>
+                  }
+                </div>
+                <div class="outfit-actions">
+                  <button class="btn-sm btn-secondary" (click)="suggestOutfit(day); $event.stopPropagation()">
+                    Regenerate
+                  </button>
+                  <button class="btn-sm btn-outline" (click)="clearOutfit(day); $event.stopPropagation()">
+                    Clear
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <button class="suggest-outfit-btn" (click)="suggestOutfit(day)">
+                ✨ Suggest Outfit
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- View Packing List Button -->
+  <div class="packing-list-section">
+    <button class="btn btn-primary btn-lg" routerLink="/packing-list">
+      View Packing List
+    </button>
+  </div>
+</div>
+
+<!-- Event Modal -->
+@if (showEventModal()) {
+  <div class="modal-overlay" (click)="closeEventModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ editingEvent() ? 'Edit Event' : 'Add Event' }}</h2>
+        <button class="close-btn" (click)="closeEventModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="eventTitle">Event Title *</label>
+          <input
+            type="text"
+            id="eventTitle"
+            [(ngModel)]="newEvent.title"
+            placeholder="e.g., Team Meeting"
+          >
+        </div>
+        <div class="form-group">
+          <label for="eventTime">Time</label>
+          <input
+            type="text"
+            id="eventTime"
+            [(ngModel)]="newEvent.time"
+            placeholder="e.g., 10:00 AM"
+          >
+        </div>
+        <div class="form-group">
+          <label for="eventLocation">Location</label>
+          <input
+            type="text"
+            id="eventLocation"
+            [(ngModel)]="newEvent.location"
+            placeholder="e.g., Conference Room A"
+          >
+        </div>
+        <div class="form-group">
+          <label for="eventDressCode">Dress Code</label>
+          <select id="eventDressCode" [(ngModel)]="newEvent.dressCode">
+            <option value="">Select dress code</option>
+            @for (code of dressCodeOptions; track code) {
+              <option [value]="code">{{ code }}</option>
+            }
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeEventModal()">Cancel</button>
+        <button class="btn btn-primary" (click)="saveEvent()" [disabled]="!newEvent.title">
+          {{ editingEvent() ? 'Update' : 'Add' }} Event
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Outfit Modal -->
+@if (showOutfitModal()) {
+  <div class="modal-overlay" (click)="closeOutfitModal()">
+    <div class="modal-content outfit-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ selectedDay()?.dayName }}'s Outfit</h2>
+        <button class="close-btn" (click)="closeOutfitModal()">×</button>
+      </div>
+      <div class="modal-body">
+        @if (selectedDay()?.outfit) {
+          <div class="outfit-detail">
+            @for (item of selectedDay()!.outfit!.items; track item.id) {
+              <div class="outfit-detail-item">
+                <div class="item-placeholder">
+                  <span class="item-type-icon">
+                    @switch (item.type) {
+                      @case ('top') { 👕 }
+                      @case ('bottom') { 👖 }
+                      @case ('dress') { 👗 }
+                      @case ('shoes') { 👟 }
+                      @case ('accessory') { 👜 }
+                      @case ('outerwear') { 🧥 }
+                    }
+                  </span>
+                </div>
+                <div class="item-info">
+                  <div class="item-name">{{ item.name }}</div>
+                  <div class="item-color">{{ item.color }}</div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeOutfitModal()">Close</button>
+        <button class="btn btn-primary" (click)="suggestOutfit(selectedDay()!); closeOutfitModal()">
+          Regenerate Outfit
+        </button>
+      </div>
+    </div>
+  </div>
+}
