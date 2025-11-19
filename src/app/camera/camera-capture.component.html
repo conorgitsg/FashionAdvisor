@@ -1,0 +1,82 @@
+<div class="camera-page">
+  <h1 class="title">Capture clothing item</h1>
+
+  <p class="hint">
+    Place the item on a plain background, fill the frame, and make sure the lighting is even.
+  </p>
+
+  <div class="camera-frame" [class.camera-frame--inactive]="!isCameraActive && !hasCaptured">
+    <video
+      #video
+      *ngIf="isCameraActive && !hasCaptured"
+      class="camera-video"
+      autoplay
+      playsinline
+      muted
+    ></video>
+
+    <canvas #canvas class="camera-canvas" hidden></canvas>
+
+    <img
+      *ngIf="hasCaptured && capturedDataUrl"
+      [src]="capturedDataUrl"
+      alt="Captured item preview"
+      class="camera-preview"
+    />
+
+    <div *ngIf="!isCameraActive && !hasCaptured" class="camera-placeholder">
+      <span>Camera is off. Tap "Start camera" to begin.</span>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="error">
+    {{ errorMessage }}
+  </div>
+
+  <div class="controls">
+    <button
+      type="button"
+      class="btn primary"
+      *ngIf="!isCameraActive && !hasCaptured"
+      (click)="startCamera()"
+    >
+      Start camera
+    </button>
+
+    <button
+      type="button"
+      class="btn primary"
+      *ngIf="isCameraActive && !hasCaptured"
+      (click)="capturePhoto()"
+    >
+      Capture
+    </button>
+
+    <button
+      type="button"
+      class="btn secondary"
+      *ngIf="isCameraActive"
+      (click)="stopCamera()"
+    >
+      Stop camera
+    </button>
+
+    <button
+      type="button"
+      class="btn secondary"
+      *ngIf="hasCaptured"
+      (click)="retake()"
+    >
+      Retake
+    </button>
+
+    <button
+      type="button"
+      class="btn success"
+      *ngIf="hasCaptured"
+      (click)="usePhoto()"
+    >
+      Use this photo
+    </button>
+  </div>
+</div>
