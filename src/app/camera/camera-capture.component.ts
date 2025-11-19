@@ -16,6 +16,7 @@ export class CameraCaptureComponent implements OnInit, OnDestroy {
   hasCaptured = false;
   errorMessage: string | null = null;
   capturedDataUrl: string | null = null;
+  private capturedBlob: Blob | null = null;
 
   private mediaStream: MediaStream | null = null;
 
@@ -104,6 +105,7 @@ export class CameraCaptureComponent implements OnInit, OnDestroy {
     // Convert to Blob and emit for upload pipeline
     canvas.toBlob((blob) => {
       if (blob) {
+        this.capturedBlob = blob;
         this.photoCaptured.emit(blob);
       }
     }, 'image/jpeg', 0.9);
@@ -120,8 +122,11 @@ export class CameraCaptureComponent implements OnInit, OnDestroy {
   }
 
   usePhoto(): void {
-    // For now this just logs; your upload/tagging step can subscribe to `photoCaptured`.
-    console.log('Photo confirmed, ready for upload/tagging.');
+    if (this.capturedBlob) {
+      this.photoCaptured.emit(this.capturedBlob);
+    } else {
+      console.warn('No captured photo to use.');
+    }
   }
 
   stopCamera(): void {
