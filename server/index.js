@@ -44,6 +44,7 @@ const s3Client = new S3Client({
 const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'fashion-advisor';
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const TAGGING_MODEL = process.env.OPENAI_TAGGING_MODEL || 'gpt-4o';
+const STYLIST_MODEL = process.env.OPENAI_STYLIST_MODEL || TAGGING_MODEL;
 const WARDROBE_FOLDER = process.env.WARDROBE_FOLDER || 'wardrobe';
 const REGION = process.env.AWS_REGION || 'ap-southeast-1';
 
@@ -74,6 +75,36 @@ Rules:
 - Do not infer brands or price
 - Use only visual information
 - Output valid JSON only (no extra text)
+`.trim();
+
+const OUTFIT_SYSTEM_PROMPT = `
+You are an AI stylist. Given:
+- user persona/preferences,
+- upcoming days (weather + events),
+- wardrobe items (id + tags),
+- existing outfits (id + item_ids),
+recommend outfits for each day using the provided wardrobe IDs.
+
+Rules:
+- Always output JSON only, no prose.
+- Prefer reusing existing outfits if they exactly match the recommended item set.
+- Do not introduce items that are not in the provided wardrobe.
+- Respect seasonality, weather, event formality, and the user's stated style/fit preferences.
+- Avoid exact repeats within the same horizon unless unavoidable.
+
+Output schema:
+{
+  "days": [
+    {
+      "date": "YYYY-MM-DD",
+      "outfit": [
+        { "item_id": "<wardrobe item id>", "reason": "short explanation" }
+      ],
+      "use_existing_outfit_id": "<optional outfit id if a perfect match exists>",
+      "notes": "optional styling notes"
+    }
+  ]
+}
 `.trim();
 
 function buildS3Key(extension = 'jpg') {
@@ -114,6 +145,19 @@ async function callVisionTagger(imageBuffer, contentType) {
   return { tags, raw: completion };
 }
 
+async function ensureOutfitsTable() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS outfits (
+      id UUID PRIMARY KEY,
+      name TEXT,
+      item_ids TEXT[] NOT NULL,
+      tags JSONB,
+      notes TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+}
+
 // Middleware
 app.use(cors({
   origin: 'http://localhost:4200',
@@ -121,6 +165,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type']
 }));
 app.use(express.json());
+ensureOutfitsTable().catch(err => {
+  console.error('Failed to ensure outfits table exists', err);
+});
 
 // Health check
 app.get('/api/health', async (req, res) => {
@@ -369,6 +416,103 @@ app.post('/api/wardrobe/items/tag', upload.single('image'), async (req, res) => 
   }
 });
 
+// Recommend outfits for upcoming days using persona + wardrobe tags + weather
+app.post('/api/stylist/recommend', async (req, res) => {
+  try {
+    const { user, days, rules } = req.body || {};
+
+    if (!Array.isArray(days) || days.length === 0) {
+      return res.status(400).json({ message: 'days[] is required' });
+    }
+
+    // Load wardrobe items (all for now; could be filtered by seasonality in future)
+    const wardrobeRows = await db.query('SELECT id, tags FROM wardrobe_items');
+    const wardrobe = wardrobeRows.rows || [];
+
+    // Load existing outfits to reuse/dedupe
+    const existingOutfitsRows = await db.query('SELECT id, item_ids FROM outfits');
+    const existingOutfits = existingOutfitsRows.rows || [];
+    const existingMap = new Map(
+      existingOutfits.map((o) => [normalizeItemIds(o.item_ids), o.id])
+    );
+
+    const userContent = {
+      user: user || {},
+      days,
+      wardrobe: wardrobe.map((w) => ({ id: w.id, tags: w.tags })),
+      existing_outfits: existingOutfits.map((o) => ({ id: o.id, item_ids: o.item_ids })),
+      rules: rules || {}
+    };
+
+    const completion = await openai.chat.completions.create({
+      model: STYLIST_MODEL,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: OUTFIT_SYSTEM_PROMPT },
+        { role: 'user', content: JSON.stringify(userContent) }
+      ]
+    });
+
+    const message = completion.choices?.[0]?.message?.content;
+    if (!message) {
+      return res.status(502).json({ message: 'No response from stylist model' });
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(message);
+    } catch (err) {
+      console.error('Failed to parse stylist JSON', err);
+      return res.status(502).json({ message: 'Stylist response not valid JSON' });
+    }
+
+    const outDays = Array.isArray(parsed?.days) ? parsed.days : [];
+
+    // Save any new outfits and attach outfitId reference
+    const results = [];
+    for (const day of outDays) {
+      const outfitItems = Array.isArray(day?.outfit) ? day.outfit : [];
+      const normalizedKey = normalizeItemIds(outfitItems.map((i) => i.item_id));
+
+      let outfitId = null;
+      if (day.use_existing_outfit_id && existingMap.has(normalizedKey)) {
+        outfitId = existingMap.get(normalizedKey);
+      } else if (existingMap.has(normalizedKey)) {
+        outfitId = existingMap.get(normalizedKey);
+      } else if (outfitItems.length > 0) {
+        outfitId = uuidv4();
+        await db.query(
+          `INSERT INTO outfits (id, item_ids, tags, notes, name)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [
+            outfitId,
+            outfitItems.map((i) => i.item_id),
+            day.tags || null,
+            day.notes || null,
+            day.name || null
+          ]
+        );
+        existingMap.set(normalizedKey, outfitId);
+      }
+
+      results.push({
+        date: day.date,
+        outfitId,
+        outfit: outfitItems,
+        notes: day.notes || null
+      });
+    }
+
+    res.json({
+      days: results,
+      raw: completion
+    });
+  } catch (error) {
+    console.error('Stylist recommend error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Error handling middleware
 app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {
@@ -400,3 +544,8 @@ app.listen(PORT, () => {
   console.log(`S3 Bucket: ${BUCKET_NAME}`);
   console.log(`AWS Region: ${process.env.AWS_REGION || 'ap-southeast-1'}`);
 });
+
+function normalizeItemIds(items) {
+  if (!Array.isArray(items)) return '';
+  return [...items].filter(Boolean).map(String).sort().join('|');
+}
