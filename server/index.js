@@ -13,6 +13,7 @@ const {
 } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const db = require('./database');
+const OpenAI = require('openai');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -41,6 +42,77 @@ const s3Client = new S3Client({
 });
 
 const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'fashion-advisor';
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const TAGGING_MODEL = process.env.OPENAI_TAGGING_MODEL || 'gpt-4o';
+const WARDROBE_FOLDER = process.env.WARDROBE_FOLDER || 'wardrobe';
+const REGION = process.env.AWS_REGION || 'ap-southeast-1';
+
+const BASE_SYSTEM_PROMPT = `
+You are a professional fashion stylist and wardrobe-cataloging engine.
+For every request, you will receive an image of a single clothing item or pair.
+Analyze the image and output a single JSON object with this schema:
+{
+  "item_name": "",
+  "broad_category": "",
+  "sub_category": "",
+  "silhouette": "",
+  "materials": "",
+  "colors": [],
+  "patterns": "",
+  "construction_details": "",
+  "style_vibe": "",
+  "best_pairings": [],
+  "seasonality": [],
+  "tags": []
+}
+Field rules:
+- broad_category: one of tops, bottoms, one-piece, outerwear, shoes, accessories, underwear/sleepwear, sportswear/athleisure
+- colors: array of simple color names in order of dominance
+- tags: single words or hyphenated phrases combining category, colors, materials, style vibe, distinctive features
+Rules:
+- Analyze the clothing item only, never the person
+- Do not infer brands or price
+- Use only visual information
+- Output valid JSON only (no extra text)
+`.trim();
+
+function buildS3Key(extension = 'jpg') {
+  return `${WARDROBE_FOLDER}/${uuidv4()}.${extension}`;
+}
+
+async function removeBackground(imageBuffer, contentType) {
+  // Placeholder: returns original buffer. Swap in real background removal when ready.
+  return { cleanedBuffer: imageBuffer, cleanedContentType: contentType };
+}
+
+async function callVisionTagger(imageBuffer, contentType) {
+  const base64 = imageBuffer.toString('base64');
+  const completion = await openai.chat.completions.create({
+    model: TAGGING_MODEL,
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: BASE_SYSTEM_PROMPT },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Analyze this clothing item and return JSON per the schema.' },
+          { type: 'image_url', image_url: { url: `data:${contentType};base64,${base64}` } }
+        ]
+      }
+    ]
+  });
+
+  const message = completion.choices?.[0]?.message?.content;
+  let tags = {};
+  try {
+    tags = message ? JSON.parse(message) : {};
+  } catch (err) {
+    console.error('Failed to parse tagging JSON', err);
+    throw new Error('Tagging response was not valid JSON');
+  }
+
+  return { tags, raw: completion };
+}
 
 // Middleware
 app.use(cors({
@@ -236,6 +308,63 @@ app.delete('/api/images/:key(*)', async (req, res) => {
     res.status(204).send();
   } catch (error) {
     console.error('Delete error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Tag wardrobe item with GPT-4o vision and persist tags + cleaned image
+app.post('/api/wardrobe/items/tag', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No image file provided' });
+    }
+
+    const notes = req.body.notes || null;
+    const itemId = uuidv4();
+    const originalExt = req.file.originalname.split('.').pop();
+    const extFromMime = (req.file.mimetype && req.file.mimetype.split('/')[1]) || 'jpg';
+    const extension = (originalExt || extFromMime || 'jpg').toLowerCase();
+
+    // 1) Background removal (placeholder)
+    const { cleanedBuffer, cleanedContentType } = await removeBackground(
+      req.file.buffer,
+      req.file.mimetype
+    );
+
+    // 2) Upload cleaned image to S3
+    const key = buildS3Key(extension);
+    const putCommand = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+      Body: cleanedBuffer,
+      ContentType: cleanedContentType || req.file.mimetype
+    });
+    await s3Client.send(putCommand);
+    const imageUrl = `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${key}`;
+
+    // 3) Tag with OpenAI vision
+    const { tags, raw } = await callVisionTagger(
+      cleanedBuffer,
+      cleanedContentType || req.file.mimetype
+    );
+
+    // 4) Persist tags to DB
+    await db.query(
+      `INSERT INTO wardrobe_items (id, s3_key, tags, raw_gpt, notes)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [itemId, key, tags, raw, notes]
+    );
+
+    // 5) Return payload
+    res.json({
+      itemId,
+      s3Key: key,
+      imageUrl,
+      tags,
+      rawGpt: raw
+    });
+  } catch (error) {
+    console.error('Tagging error:', error);
     res.status(500).json({ message: error.message });
   }
 });
