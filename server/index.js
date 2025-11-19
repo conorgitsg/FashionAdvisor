@@ -472,6 +472,48 @@ app.get('/api/wardrobe/items', async (req, res) => {
   }
 });
 
+// Delete wardrobe item
+app.delete('/api/wardrobe/items/:id', async (req, res) => {
+  try {
+    const itemId = req.params.id;
+
+    // Get the S3 key before deleting
+    let result;
+    try {
+      result = await db.query('SELECT s3_key FROM wardrobe WHERE id = $1', [itemId]);
+    } catch {
+      result = await db.query('SELECT s3_key FROM wardrobe_items WHERE id = $1', [itemId]);
+    }
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    const s3Key = result.rows[0].s3_key;
+
+    // Delete from S3
+    if (s3Key) {
+      const deleteCommand = new DeleteObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: s3Key
+      });
+      await s3Client.send(deleteCommand);
+    }
+
+    // Delete from database
+    try {
+      await db.query('DELETE FROM wardrobe WHERE id = $1', [itemId]);
+    } catch {
+      await db.query('DELETE FROM wardrobe_items WHERE id = $1', [itemId]);
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    console.error('Delete wardrobe item error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Recommend outfits for upcoming days using persona + wardrobe tags + weather
 app.post('/api/stylist/recommend', async (req, res) => {
   try {

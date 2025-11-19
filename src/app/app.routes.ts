@@ -32,6 +32,10 @@ export const routes: Routes = [
     loadComponent: () => import('./components/weekly-planner/weekly-planner.component').then(m => m.WeeklyPlannerComponent)
   },
   {
+    path: 'packing-list',
+    loadComponent: () => import('./components/packing-list/packing-list.component').then(m => m.PackingListComponent)
+  },
+  {
     path: 'about',
     loadComponent: () => import('./components/placeholder/placeholder.component').then(m => m.PlaceholderComponent),
     data: { title: 'About' }
