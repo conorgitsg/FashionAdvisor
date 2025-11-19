@@ -1,38 +1,69 @@
 <div class="camera-test-page">
   <h1>Camera Test</h1>
-  <p class="subtitle">Test the camera capture functionality</p>
+  <p class="subtitle">Capture photos and save them to S3</p>
 
   <div class="camera-section">
     <app-camera-capture (photoCaptured)="onPhotoCaptured($event)"></app-camera-capture>
   </div>
 
+  @if (isUploading()) {
+    <div class="upload-status">
+      <div class="spinner"></div>
+      <span>Uploading to S3...</span>
+    </div>
+  }
+
+  @if (uploadError()) {
+    <div class="error-message">
+      {{ uploadError() }}
+    </div>
+  }
+
   <div class="stats-section">
     <div class="stat-card">
-      <span class="stat-label">Photos Captured</span>
+      <span class="stat-label">Photos in S3</span>
       <span class="stat-value">{{ captureCount() }}</span>
     </div>
     @if (lastCaptureTime()) {
       <div class="stat-card">
-        <span class="stat-label">Last Capture</span>
+        <span class="stat-label">Last Upload</span>
         <span class="stat-value">{{ lastCaptureTime() }}</span>
       </div>
     }
   </div>
 
-  @if (capturedImages().length > 0) {
-    <div class="gallery-section">
-      <div class="gallery-header">
-        <h2>Captured Images</h2>
-        <button class="btn btn-secondary" (click)="clearImages()">Clear All</button>
-      </div>
-      <div class="gallery-grid">
-        @for (image of capturedImages(); track $index) {
-          <div class="gallery-item">
-            <img [src]="image" alt="Captured photo {{ $index + 1 }}">
-            <span class="gallery-label">Photo {{ $index + 1 }}</span>
-          </div>
+  <div class="gallery-section">
+    <div class="gallery-header">
+      <h2>S3 Gallery</h2>
+      <div class="gallery-actions">
+        <button class="btn btn-outline" (click)="refreshImages()">Refresh</button>
+        @if (uploadedImages().length > 0) {
+          <button class="btn btn-secondary" (click)="clearAllImages()">Delete All</button>
         }
       </div>
     </div>
-  }
+
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <span>Loading images...</span>
+      </div>
+    } @else if (uploadedImages().length > 0) {
+      <div class="gallery-grid">
+        @for (image of uploadedImages(); track image.key) {
+          <div class="gallery-item">
+            <img [src]="image.url" [alt]="image.filename">
+            <div class="gallery-item-overlay">
+              <span class="gallery-label">{{ image.filename }}</span>
+              <button class="delete-btn" (click)="deleteImage(image)">Delete</button>
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="empty-state">
+        <p>No images yet. Capture a photo to upload to S3.</p>
+      </div>
+    }
+  </div>
 </div>

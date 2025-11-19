@@ -127,6 +127,7 @@ src/app/
     daily-outfit/         # Daily smart outfit recommendation page
     outfit-preferences/   # Tag-based outfit preference input
     catalog/              # Wardrobe catalog with filtering
+    weekly-planner/       # Weekly planner with events and outfit scheduling
   camera/                 # Camera capture component
   upload/                 # Upload page with camera/file modes
   services/
@@ -134,6 +135,7 @@ src/app/
     ai-tagging.service.ts # AI tagging service
     daily-outfit.service.ts # Daily outfit recommendation API service
     catalog.service.ts    # Catalog data and filtering service
+    weekly-planner.service.ts # Weekly planner event and outfit management
   app.ts                  # Root component
   app.routes.ts           # Route configuration
   app.config.ts           # App providers config
@@ -182,7 +184,7 @@ const result = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
 { path: 'mixer', loadComponent: () => import('./components/placeholder/placeholder.component') }
 { path: 'outfits', loadComponent: () => import('./components/placeholder/placeholder.component') }
 { path: 'stylist', loadComponent: () => import('./components/placeholder/placeholder.component') }
-{ path: 'planner', loadComponent: () => import('./components/placeholder/placeholder.component') }
+{ path: 'planner', loadComponent: () => import('./components/weekly-planner/weekly-planner.component') }
 { path: 's3-test', loadComponent: () => import('./components/s3-test/s3-test.component') }
 { path: 'camera', loadComponent: () => import('./camera/camera-capture.component') }
 { path: 'camera-test', loadComponent: () => import('./components/camera-test/camera-test.component') }
@@ -210,7 +212,7 @@ The app has S3 connectivity implemented with a test component at `/s3-test`. Pos
 - `/mixer` - Outfit Mixer (placeholder)
 - `/outfits` - Outfit Catalogue (placeholder)
 - `/stylist` - AI Stylist (placeholder)
-- `/planner` - Weekly Planner (placeholder)
+- `/planner` - Weekly planner with event and outfit scheduling
 - `/about`, `/privacy`, `/support` - Footer links (placeholders)
 - `/s3-test` - S3 upload testing
 - `/camera` - Camera capture component (standalone)
@@ -380,5 +382,87 @@ interface CatalogFilters {
   seasons: string[];
   usage: string[];
   outfitTypes: string[];
+}
+```
+
+### Weekly Planner Feature
+
+The weekly planner allows users to schedule events and plan outfits for the week ahead.
+
+**Weekly Planner Page** (`/planner`):
+- Weekly grid view with 7 day cards (lilac background)
+- Week navigation (previous/next week)
+- Each day card displays:
+  - Day name and date
+  - Weather info (temperature, icon)
+  - Events with time, title, dress code
+  - Suggested outfit with item chips
+- Add/edit/delete events
+- AI outfit suggestion per day
+- "View Packing List" button
+- Today highlighting with primary border
+
+**Event Modal**:
+- Event title (required)
+- Time
+- Location
+- Dress code selector (Casual, Business Casual, Business Formal, Smart Casual, Athleisure, Dressy)
+
+**Outfit Modal**:
+- Outfit item breakdown with type icons
+- Regenerate outfit option
+
+**WeeklyPlannerService** (`src/app/services/weekly-planner.service.ts`):
+- `getCurrentWeek()` - Get current week's planner data
+- `getWeekByDate(date)` - Get week by specific date
+- `addEvent(dayDate, event)` - Add event to a day
+- `updateEvent(eventId, updates)` - Update existing event
+- `deleteEvent(eventId)` - Remove event
+- `setDayOutfit(dayDate, outfit)` - Set outfit for a day
+- `suggestOutfit(dayDate, events)` - Get AI outfit suggestion based on day's events
+
+**Data Structures:**
+```typescript
+interface PlannerEvent {
+  id: string;
+  title: string;
+  time?: string;
+  location?: string;
+  dressCode?: string;
+  notes?: string;
+}
+
+interface OutfitItem {
+  id: string;
+  name: string;
+  type: 'top' | 'bottom' | 'dress' | 'outerwear' | 'shoes' | 'accessory';
+  imageUrl: string;
+  color?: string;
+}
+
+interface DayOutfit {
+  id: string;
+  items: OutfitItem[];
+  occasion?: string;
+}
+
+interface PlannerDay {
+  date: Date;
+  dayName: string;
+  dayNumber: number;
+  events: PlannerEvent[];
+  outfit?: DayOutfit;
+  weather?: {
+    temperature: number;
+    condition: string;
+    icon: string;
+  };
+}
+
+interface PlannerWeek {
+  id: string;
+  startDate: Date;
+  endDate: Date;
+  days: PlannerDay[];
 }
 ```
