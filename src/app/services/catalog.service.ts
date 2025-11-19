@@ -67,7 +67,7 @@ export type ViewMode = 'clothing' | 'outfits' | 'all';
   providedIn: 'root'
 })
 export class CatalogService {
-  private apiUrl = 'https://fashionadvisorhackathon.onrender.com/api';
+  private apiUrl = 'https://fashionadvisorhack.onrender.com/api';
 
   constructor(private http: HttpClient) {}
 
