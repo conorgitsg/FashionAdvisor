@@ -35,7 +35,7 @@ export interface DailyOutfitResponse {
   providedIn: 'root'
 })
 export class DailyOutfitService {
-  private apiUrl = 'https://fashionadvisorhackathon.onrender.com/api';
+  private apiUrl = 'https://fashionadvisorhack.onrender.com/api';
 
   constructor(private http: HttpClient) {}
 
